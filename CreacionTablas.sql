@@ -1,5 +1,6 @@
 --DROP PROCEDURE crearTodasLasTablas;
-go
+exec crearTodasLasTablas
+--go
 CREATE PROCEDURE crearTodasLasTablas AS 
 BEGIN
 
@@ -241,34 +242,35 @@ CREATE TABLE Pteradata.TipoPagoMedioPago (
 CREATE TABLE Pteradata.MedioPago (
 	id_medio_pago INT PRIMARY KEY IDENTITY(1,1),
 	pago_medio_pago VARCHAR(255) UNIQUE,
-	id_pago_tipo_medio_pago INT UNIQUE,
+	id_pago_tipo_medio_pago INT,
 	FOREIGN KEY (id_pago_tipo_medio_pago) REFERENCES Pteradata.TipoPagoMedioPago(id_pago_tipo_medio_pago)
 );
 
 CREATE TABLE Pteradata.Tarjeta(
 	nro_tarjeta VARCHAR(50) PRIMARY KEY,
-	id_cliente INT,
-	FOREIGN KEY(id_cliente) REFERENCES Pteradata.Cliente(id_cliente),
 	tarjeta_fecha_vencimiento DATETIME
-);
-
-
-CREATE TABLE Pteradata.DetallePago (
-	id_pago_detalle INT PRIMARY KEY IDENTITY(1,1),
-	nro_tarjeta VARCHAR(50),
-	FOREIGN KEY (nro_tarjeta) REFERENCES Pteradata.Tarjeta(nro_tarjeta),
-	cant_cuotas INT
 );
 
 CREATE TABLE Pteradata.Pago(
 	nro_pago INT PRIMARY KEY IDENTITY(1,1),
-	id_pago_detalle INT,
-	FOREIGN KEY(id_pago_detalle) REFERENCES Pteradata.DetallePago(id_pago_detalle),
+	id_cliente INT,
 	pago_fecha DATETIME, 
 	pago_importe DECIMAL(18,2),
 	id_medio_pago INT,
+	FOREIGN KEY(id_cliente) REFERENCES Pteradata.Cliente(id_cliente),
 	FOREIGN KEY(id_medio_pago) REFERENCES Pteradata.MedioPago(id_medio_pago)
 );
+
+CREATE TABLE Pteradata.DetallePago (
+	id_pago_detalle INT PRIMARY KEY IDENTITY(1,1),
+	nro_tarjeta VARCHAR(50),
+	nro_pago INT,
+	FOREIGN KEY(nro_pago) REFERENCES Pteradata.Pago(nro_pago),
+	FOREIGN KEY (nro_tarjeta) REFERENCES Pteradata.Tarjeta(nro_tarjeta),
+	cant_cuotas INT
+);
+
+
 
 CREATE TABLE Pteradata.DescuetoPorPago(
 	id_pago INT,

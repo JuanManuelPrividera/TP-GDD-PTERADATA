@@ -4,7 +4,7 @@ BEGIN
 	BEGIN TRANSACTION 
 	
 	BEGIN TRY 
-		EXEC migrarProvincias;
+		EXEC migrarProvincia;
 		EXEC migrarLocalidad;
 		EXEC migrarDireccion;
 		EXEC migrarClientes;
@@ -14,6 +14,8 @@ BEGIN
 		EXEC migrarCajas;
 		EXEC migrarContactoEmpleado;
 		EXEC migrarEmpleados;
+		EXEC migrarTipoPagoMedioPago;
+		EXEC migrarMedioPago;
 	END TRY 
 	
 	BEGIN CATCH 
@@ -23,7 +25,7 @@ BEGIN
 	COMMIT TRANSACTION 
 END 
 */
-
+exec migrarTodo
 --select * from Provincia
 --exec migrarProvincia;
 
@@ -147,10 +149,6 @@ BEGIN
 	WHERE DESCUENTO_CODIGO IS NOT NULL
 END
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 80a3202e8147db4541b6431be12aa4f9ae52a61d
 CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(estado)
@@ -163,8 +161,7 @@ BEGIN
 	INSERT INTO Pteradata.TipoDeComprobante(tipo_comprobante)
 	SELECT DISTINCT TICKET_TIPO_COMPROBANTE FROM gd_esquema.Maestra
 END
-<<<<<<< HEAD
-=======
+
 
 CREATE PROCEDURE migrarMarcas AS
 BEGIN
@@ -195,4 +192,48 @@ BEGIN
 							  JOIN Pteradata.Categoria c ON m.PRODUCTO_CATEGORIA = c.producto_categoria
 							  JOIN Pteradata.SubCategoria sc ON m.PRODUCTO_SUB_CATEGORIA = sc.producto_sub_categoria AND c.producto_categoria = sc.producto_categoria
 END
->>>>>>> 80a3202e8147db4541b6431be12aa4f9ae52a61d
+
+
+CREATE PROCEDURE migrarTarjetas AS
+BEGIN
+	INSERT INTO Pteradata.Tarjeta(nro_tarjeta, tarjeta_fecha_vencimiento)
+	SELECT DISTINCT PAGO_TARJETA_NRO, PAGO_TARJETA_FECHA_VENC FROM gd_esquema.Maestra
+	WHERE PAGO_TARJETA_NRO IS NOT NULL AND PAGO_TARJETA_FECHA_VENC IS NOT NULL
+END
+
+CREATE PROCEDURE migrarTipoPagoMedioPago AS
+BEGIN
+	INSERT INTO Pteradata.TipoPagoMedioPago(pago_tipo_medio_pago)
+	SELECT DISTINCT PAGO_TIPO_MEDIO_PAGO FROM gd_esquema.Maestra
+	WHERE PAGO_TIPO_MEDIO_PAGO IS NOT NULL
+END
+
+
+CREATE PROCEDURE migrarMedioPago AS
+BEGIN
+	INSERT INTO Pteradata.MedioPago(pago_medio_pago, id_pago_tipo_medio_pago)
+	SELECT DISTINCT g.PAGO_MEDIO_PAGO, t.id_pago_tipo_medio_pago FROM gd_esquema.Maestra g
+	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
+END
+
+EXEC migrarMedioPago
+ROLLBACK TRANSACTION
+CREATE PROCEDURE migrarPago AS
+BEGIN
+	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago, id_cliente)
+	SELECT PAGO_FECHA, PAGO_IMPORTE, m.id_medio_pago, c.id_cliente FROM gd_esquema.Maestra g
+	JOIN Pteradata.MedioPago m ON m.pago_medio_pago = g.PAGO_MEDIO_PAGO
+	JOIN Pteradata.TipoPagoMedioPago t ON t.id_pago_tipo_medio_pago = m.id_pago_tipo_medio_pago
+	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
+	JOIN Pteradata.Cliente c ON c.dni_cliente = g.CLIENTE_DNI
+END
+
+exec migrarPago
+
+SELECT * FROM Pteradata.Cliente
+WHERE dni_cliente IS NOT NULL
+
+BEGIN TRANSACTION
+ROLLBACK TRANSACTION
+EXECUTE migrarTarjetas
+SELECT * FROM Pteradata.Tarjeta
