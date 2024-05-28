@@ -1,4 +1,31 @@
+/*
+CREATE PROCEDURE migrarTodo AS
+BEGIN
+	BEGIN TRANSACTION 
+	
+	BEGIN TRY 
+		EXEC migrarProvincias;
+		EXEC migrarLocalidad;
+		EXEC migrarDireccion;
+		EXEC migrarClientes;
+		EXEC migrarSupermercado;
+		EXEC migrarSucursal; 
+		EXEC migrarCajaTipo;
+		EXEC migrarCajas;
+		EXEC migrarContactoEmpleado;
+		EXEC migrarEmpleados;
+	END TRY 
+	
+	BEGIN CATCH 
+		ROLLBACK
+	END CATCH
 
+	COMMIT TRANSACTION 
+END 
+*/
+
+select * from Provincia
+exec migrarProvincia;
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -41,7 +68,7 @@ END
 
 CREATE PROCEDURE migrarClientes AS
 BEGIN
-	INSERT INTO Pteradata.Cliente(dni_cliente,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
+	INSERT INTO Pteradata.Cliente(cliente_dni,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
 	SELECT CLIENTE_DNI, d.id_direccion, CLIENTE_NOMBRE, CLIENTE_APELLIDO, CLIENTE_FECHA_REGISTRO,CLIENTE_TELEFONO,CLIENTE_MAIL,CLIENTE_FECHA_NACIMIENTO
 	FROM gd_esquema.Maestra m JOIN Pteradata.Direccion d ON m.CLIENTE_DOMICILIO = d.domicilio
 							  JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad AND l.localidad_nombre = m.CLIENTE_LOCALIDAD
