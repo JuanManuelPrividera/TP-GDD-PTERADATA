@@ -130,7 +130,8 @@ CREATE TABLE Pteradata.Cliente(
 	cliente_fecha_registro DATE,
 	cliente_telefono DECIMAL (18,0),
 	cliente_mail VARCHAR(255),
-	cliente_fecha_nacimiento DATE
+	cliente_fecha_nacimiento DATE,
+	cliente_dni DECIMAL(18,0)
 );
 
 CREATE TABLE Pteradata.Ticket(
