@@ -24,8 +24,9 @@ BEGIN
 END 
 */
 
-select * from Provincia
-exec migrarProvincia;
+--select * from Provincia
+--exec migrarProvincia;
+
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -179,4 +180,13 @@ BEGIN
 	INSERT INTO Pteradata.SubCategoria(producto_sub_categoria, producto_categoria)
 	SELECT DISTINCT PRODUCTO_SUB_CATEGORIA, PRODUCTO_CATEGORIA FROM gd_esquema.Maestra
 	WHERE PRODUCTO_CATEGORIA IS NOT NULL AND PRODUCTO_SUB_CATEGORIA IS NOT NULL
+END
+
+CREATE PROCEDURE migrarProductos AS
+BEGIN
+	INSERT INTO Pteradata.Producto( producto_categoria, producto_nombre,id_marca,producto_descripcion, producto_precio)
+	SELECT m.PRODUCTO_CATEGORIA, m.PRODUCTO_NOMBRE,  mc.id_marca, m.PRODUCTO_DESCRIPCION, m.PRODUCTO_PRECIO
+	FROM gd_esquema.Maestra m JOIN Pteradata.Marca mc ON m.PRODUCTO_MARCA = mc.producto_marca
+							  JOIN Pteradata.Categoria c ON m.PRODUCTO_CATEGORIA = c.producto_categoria
+							  JOIN Pteradata.SubCategoria sc ON m.PRODUCTO_SUB_CATEGORIA = sc.producto_sub_categoria AND c.producto_categoria = sc.producto_categoria
 END
