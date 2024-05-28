@@ -25,7 +25,11 @@ BEGIN
 		EXEC migrarTarjetas;
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
+<<<<<<< HEAD
 		-- EXEC migrarPago;
+=======
+		EXEC migrarReglas;
+>>>>>>> a1becea (Promocion)
 	END TRY 
 	BEGIN CATCH 
 		ROLLBACK
@@ -34,9 +38,15 @@ BEGIN
 	COMMIT TRANSACTION 
 END 
 */
+<<<<<<< HEAD
 --exec migrarTodo
 
 
+=======
+exec migrarTodo
+--select * from Provincia
+--exec migrarProvincia;
+>>>>>>> a1becea (Promocion)
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -79,7 +89,7 @@ END
 
 CREATE PROCEDURE migrarClientes AS
 BEGIN
-	INSERT INTO Pteradata.Cliente(cliente_dni,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
+	INSERT INTO Pteradata.Cliente(dni_cliente,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
 	SELECT CLIENTE_DNI, d.id_direccion, CLIENTE_NOMBRE, CLIENTE_APELLIDO, CLIENTE_FECHA_REGISTRO,CLIENTE_TELEFONO,CLIENTE_MAIL,CLIENTE_FECHA_NACIMIENTO
 	FROM gd_esquema.Maestra m JOIN Pteradata.Direccion d ON m.CLIENTE_DOMICILIO = d.domicilio
 							  JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad AND l.localidad_nombre = m.CLIENTE_LOCALIDAD
@@ -141,7 +151,7 @@ BEGIN
 	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_descuento,
 	regla_cant_aplicable_regla,regla_cant_max_prod,regla_descripcion,regla_descuento_aplicable_prod)
 	
-	SELECT REGLA_APLICA_MISMA_MARCA, REGLA_APLICA_MISMO_PROD, REGLA_CANT_APLICA_DESCUENTO, 
+	SELECT DISTINCT REGLA_APLICA_MISMA_MARCA, REGLA_APLICA_MISMO_PROD, REGLA_CANT_APLICA_DESCUENTO, 
 	REGLA_CANT_APLICABLE_REGLA, REGLA_CANT_MAX_PROD, REGLA_DESCRIPCION, REGLA_DESCUENTO_APLICABLE_PROD 
 	FROM gd_esquema.Maestra
 	WHERE REGLA_DESCRIPCION IS NOT NULL
@@ -230,16 +240,38 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 END
 
+<<<<<<< HEAD
 /*
+=======
+>>>>>>> a1becea (Promocion)
 CREATE PROCEDURE migrarPago AS
 BEGIN
-	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago, id_cliente)
-	SELECT PAGO_FECHA, PAGO_IMPORTE, m.id_medio_pago, c.id_cliente FROM gd_esquema.Maestra g
+	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago)
+	SELECT PAGO_FECHA, PAGO_IMPORTE, m.id_medio_pago FROM gd_esquema.Maestra g
 	JOIN Pteradata.MedioPago m ON m.pago_medio_pago = g.PAGO_MEDIO_PAGO
-	JOIN Pteradata.TipoPagoMedioPago t ON t.id_pago_tipo_medio_pago = m.id_pago_tipo_medio_pago
-	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
-	JOIN Pteradata.Cliente c ON c.dni_cliente = g.CLIENTE_DNI
+	JOIN Pteradata.TipoPagoMedioPago t ON (t.id_pago_tipo_medio_pago = m.id_pago_tipo_medio_pago
+	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago)
 END
 */
 
+<<<<<<< HEAD
 
+=======
+CREATE PROCEDURE migrarDetallePago AS
+BEGIN 
+	INSERT INTO Pteradata.DetallePago(nro_tarjeta, nro_pago, cant_cuotas)
+	SELECT t.nro_tarjeta, nro_pago, PAGO_TARJETA_CUOTAS FROM gd_esquema.Maestra m
+	JOIN Pteradata.Tarjeta t ON m.PAGO_TARJETA_NRO = t.nro_tarjeta
+	JOIN Pteradata.Pago p ON p.
+END
+
+
+CREATE PROCEDURE migrarPromocion AS
+BEGIN
+	INSERT INTO Pteradata.Promocion(id_relgas, promocion_fecha_inicio, promocion_fecha_fin, promo_aplicada_descuento, promocion_descripcion)
+	SELECT DISTINCT r.id_reglas, PROMOCION_FECHA_INICIO, PROMOCION_FECHA_FIN, PROMO_APLICADA_DESCUENTO, PROMOCION_DESCRIPCION FROM gd_esquema.Maestra g
+	JOIN Pteradata.Reglas r ON r.regla_descripcion = g.REGLA_DESCRIPCION
+END
+
+
+>>>>>>> a1becea (Promocion)
