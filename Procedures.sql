@@ -1,31 +1,3 @@
-/*
-CREATE PROCEDURE migrarTodo AS
-BEGIN
-	BEGIN TRANSACTION 
-	
-	BEGIN TRY 
-		EXEC migrarProvincias;
-		EXEC migrarLocalidad;
-		EXEC migrarDireccion;
-		EXEC migrarClientes;
-		EXEC migrarSupermercado;
-		EXEC migrarSucursal; 
-		EXEC migrarCajaTipo;
-		EXEC migrarCajas;
-		EXEC migrarContactoEmpleado;
-		EXEC migrarEmpleados;
-	END TRY 
-	
-	BEGIN CATCH 
-		ROLLBACK
-	END CATCH
-
-	COMMIT TRANSACTION 
-END 
-*/
-
---select * from Provincia
---exec migrarProvincia;
 
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
@@ -69,7 +41,7 @@ END
 
 CREATE PROCEDURE migrarClientes AS
 BEGIN
-	INSERT INTO Pteradata.Cliente(cliente_dni,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
+	INSERT INTO Pteradata.Cliente(dni_cliente,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
 	SELECT CLIENTE_DNI, d.id_direccion, CLIENTE_NOMBRE, CLIENTE_APELLIDO, CLIENTE_FECHA_REGISTRO,CLIENTE_TELEFONO,CLIENTE_MAIL,CLIENTE_FECHA_NACIMIENTO
 	FROM gd_esquema.Maestra m JOIN Pteradata.Direccion d ON m.CLIENTE_DOMICILIO = d.domicilio
 							  JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad AND l.localidad_nombre = m.CLIENTE_LOCALIDAD
@@ -147,10 +119,6 @@ BEGIN
 	WHERE DESCUENTO_CODIGO IS NOT NULL
 END
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 80a3202e8147db4541b6431be12aa4f9ae52a61d
 CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(estado)
@@ -163,8 +131,6 @@ BEGIN
 	INSERT INTO Pteradata.TipoDeComprobante(tipo_comprobante)
 	SELECT DISTINCT TICKET_TIPO_COMPROBANTE FROM gd_esquema.Maestra
 END
-<<<<<<< HEAD
-=======
 
 CREATE PROCEDURE migrarMarcas AS
 BEGIN
@@ -195,4 +161,3 @@ BEGIN
 							  JOIN Pteradata.Categoria c ON m.PRODUCTO_CATEGORIA = c.producto_categoria
 							  JOIN Pteradata.SubCategoria sc ON m.PRODUCTO_SUB_CATEGORIA = sc.producto_sub_categoria AND c.producto_categoria = sc.producto_categoria
 END
->>>>>>> 80a3202e8147db4541b6431be12aa4f9ae52a61d
