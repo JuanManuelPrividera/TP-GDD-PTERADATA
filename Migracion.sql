@@ -14,10 +14,19 @@ BEGIN
 		EXEC migrarCajas;
 		EXEC migrarContactoEmpleado;
 		EXEC migrarEmpleados;
+		EXEC migrarReglas;
+		EXEC migrarDescuentos;
+		EXEC migrarEnvioEstado;
+		EXEC migrarTipoComprobante;
+		EXEC migrarMarcas;
+		EXEC migrarCategorias;
+		EXEC migrarSubCategorias;
+		EXEC migrarProductos;
+		EXEC migrarTarjetas;
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
+		EXEC migrarPago;
 	END TRY 
-	
 	BEGIN CATCH 
 		ROLLBACK
 	END CATCH
@@ -215,7 +224,6 @@ BEGIN
 END
 
 
-
 CREATE PROCEDURE migrarMedioPago AS
 BEGIN
 	INSERT INTO Pteradata.MedioPago(pago_medio_pago, id_pago_tipo_medio_pago)
@@ -223,8 +231,7 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 END
 
-EXEC migrarMedioPago
-ROLLBACK TRANSACTION
+
 CREATE PROCEDURE migrarPago AS
 BEGIN
 	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago, id_cliente)
@@ -235,12 +242,5 @@ BEGIN
 	JOIN Pteradata.Cliente c ON c.dni_cliente = g.CLIENTE_DNI
 END
 
-exec migrarPago
 
-SELECT * FROM Pteradata.Cliente
-WHERE dni_cliente IS NOT NULL
 
-BEGIN TRANSACTION
-ROLLBACK TRANSACTION
-EXECUTE migrarTarjetas
-SELECT * FROM Pteradata.Tarjeta
