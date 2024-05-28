@@ -51,6 +51,8 @@ BEGIN
 	SELECT DISTINCT SUCURSAL_PROVINCIA FROM gd_esquema.Maestra	
 END
 
+go
+
 CREATE PROCEDURE migrarLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.Localidad(localidad_nombre, id_provincia)
@@ -64,6 +66,7 @@ BEGIN
 	JOIN Pteradata.Provincia p ON SUCURSAL_PROVINCIA = p.provincia_nombre
 	
 END
+go
 
 CREATE PROCEDURE migrarDireccion AS
 BEGIN 
@@ -78,6 +81,8 @@ BEGIN
 	JOIN Pteradata.Localidad p ON p.localidad_nombre = g.SUCURSAL_LOCALIDAD
 END
 
+go
+
 CREATE PROCEDURE migrarClientes AS
 BEGIN
 	INSERT INTO Pteradata.Cliente(dni_cliente,id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento)
@@ -86,6 +91,8 @@ BEGIN
 							  JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad AND l.localidad_nombre = m.CLIENTE_LOCALIDAD
 							  JOIN Pteradata.Provincia p ON l.id_provincia = p.id_provincia AND p.provincia_nombre = m.CLIENTE_PROVINCIA
 END
+
+go
 
 CREATE PROCEDURE migrarSupermercado AS
 BEGIN
@@ -96,6 +103,8 @@ BEGIN
 							  JOIN Pteradata.Provincia p ON l.id_provincia = p.id_provincia AND p.provincia_nombre = m.SUPER_PROVINCIA
 END
 
+go
+
 CREATE PROCEDURE migrarSucursal AS
 BEGIN
 	INSERT INTO Pteradata.Sucursal(nombre,id_direccion,cuit)
@@ -105,12 +114,16 @@ BEGIN
 							  JOIN Pteradata.Provincia p ON l.id_provincia = p.id_provincia AND p.provincia_nombre = m.SUCURSAL_PROVINCIA
 END
 
+go
+
 CREATE PROCEDURE migrarCajaTipo AS
 BEGIN
 	INSERT INTO Pteradata.CajaTipo(caja_tipo)
 	SELECT DISTINCT CAJA_TIPO FROM gd_esquema.Maestra
 	WHERE CAJA_TIPO IS NOT NULL
 END
+
+go
 
 CREATE PROCEDURE migrarCajas AS
 BEGIN
@@ -121,12 +134,16 @@ BEGIN
 							  WHERE m.CAJA_NUMERO IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarContactoEmpleado AS
 BEGIN
 	INSERT INTO Pteradata.ContactoEmpleado(email, telefono)
 	SELECT DISTINCT EMPLEADO_MAIL, EMPLEADO_TELEFONO FROM gd_esquema.Maestra
 	WHERE EMPLEADO_MAIL IS NOT NULL AND EMPLEADO_TELEFONO IS NOT NULL
 END
+
+go
 
 CREATE PROCEDURE migrarEmpleados AS
 BEGIN
@@ -136,6 +153,7 @@ BEGIN
 							  JOIN Pteradata.Sucursal s ON m.SUCURSAL_NOMBRE = s.nombre
 END
 
+go
 
 CREATE PROCEDURE migrarReglas AS
 BEGIN
@@ -148,6 +166,8 @@ BEGIN
 	WHERE REGLA_DESCRIPCION IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarDescuentos AS
 BEGIN
 	INSERT INTO Pteradata.Descuento(descuento_codigo,descuento_descripcion, descuento_fecha_inicio, 
@@ -158,6 +178,8 @@ BEGIN
 	WHERE DESCUENTO_CODIGO IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(estado)
@@ -165,12 +187,15 @@ BEGIN
 	WHERE ENVIO_ESTADO IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarTipoComprobante AS
 BEGIN
 	INSERT INTO Pteradata.TipoDeComprobante(tipo_comprobante)
 	SELECT DISTINCT TICKET_TIPO_COMPROBANTE FROM gd_esquema.Maestra
 END
 
+go
 
 CREATE PROCEDURE migrarMarcas AS
 BEGIN
@@ -179,6 +204,8 @@ BEGIN
 	WHERE PRODUCTO_MARCA IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarCategorias AS
 BEGIN
 	INSERT INTO Pteradata.Categoria(producto_categoria)
@@ -186,12 +213,16 @@ BEGIN
 	WHERE PRODUCTO_CATEGORIA IS NOT NULL
 END
 
+go
+
 CREATE PROCEDURE migrarSubCategorias AS
 BEGIN 
 	INSERT INTO Pteradata.SubCategoria(producto_sub_categoria, producto_categoria)
 	SELECT DISTINCT PRODUCTO_SUB_CATEGORIA, PRODUCTO_CATEGORIA FROM gd_esquema.Maestra
 	WHERE PRODUCTO_CATEGORIA IS NOT NULL AND PRODUCTO_SUB_CATEGORIA IS NOT NULL
 END
+
+go
 
 CREATE PROCEDURE migrarProductos AS
 BEGIN
@@ -202,6 +233,7 @@ BEGIN
 							  JOIN Pteradata.SubCategoria sc ON m.PRODUCTO_SUB_CATEGORIA = sc.producto_sub_categoria AND c.producto_categoria = sc.producto_categoria
 END
 
+go
 
 CREATE PROCEDURE migrarTarjetas AS
 BEGIN
@@ -209,6 +241,8 @@ BEGIN
 	SELECT DISTINCT PAGO_TARJETA_NRO, PAGO_TARJETA_FECHA_VENC FROM gd_esquema.Maestra
 	WHERE PAGO_TARJETA_NRO IS NOT NULL AND PAGO_TARJETA_FECHA_VENC IS NOT NULL
 END
+
+go
 
 CREATE PROCEDURE migrarPagoMedioTipoPago AS
 BEGIN 
@@ -223,6 +257,7 @@ BEGIN
 			WHERE PAGO_TIPO_MEDIO_PAGO is not null
 END
 
+go
 
 CREATE PROCEDURE migrarMedioPago AS
 BEGIN
@@ -231,6 +266,7 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 END
 
+go
 
 CREATE PROCEDURE migrarPago AS
 BEGIN
@@ -241,6 +277,8 @@ BEGIN
 	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago)
 END
 
+go
+
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN 
 	INSERT INTO Pteradata.DetallePago(nro_tarjeta, nro_pago, cant_cuotas)
@@ -249,6 +287,7 @@ BEGIN
 	JOIN Pteradata.Pago p ON p.
 END
 
+go
 
 CREATE PROCEDURE migrarPromocion AS
 BEGIN
@@ -257,12 +296,15 @@ BEGIN
 	JOIN Pteradata.Reglas r ON r.regla_descripcion = g.REGLA_DESCRIPCION
 END
 
+go
+
 CREATE PROCEDURE migrarPromocionPorProducto AS
 BEGIN
 	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo)
 	SELECT g.PROMO_CODIGO, p.producto_codigo FROM gd_esquema.Maestra g
 	JOIN Pteradata.Producto p ON p.producto_descripcion = g.PRODUCTO_DESCRIPCION
 END
+
 
 
 
