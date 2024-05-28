@@ -25,7 +25,7 @@ BEGIN
 		EXEC migrarTarjetas;
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
-		EXEC migrarPago;
+		-- EXEC migrarPago;
 	END TRY 
 	BEGIN CATCH 
 		ROLLBACK
@@ -34,9 +34,8 @@ BEGIN
 	COMMIT TRANSACTION 
 END 
 */
-exec migrarTodo
---select * from Provincia
---exec migrarProvincia;
+--exec migrarTodo
+
 
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
@@ -231,7 +230,7 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 END
 
-
+/*
 CREATE PROCEDURE migrarPago AS
 BEGIN
 	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago, id_cliente)
@@ -241,6 +240,6 @@ BEGIN
 	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 	JOIN Pteradata.Cliente c ON c.dni_cliente = g.CLIENTE_DNI
 END
-
+*/
 
 
