@@ -96,3 +96,25 @@ BEGIN
 	FROM gd_esquema.Maestra m JOIN Pteradata.ContactoEmpleado ce ON ce.email = m.EMPLEADO_MAIL AND ce.telefono = m.EMPLEADO_TELEFONO
 							  JOIN Pteradata.Sucursal s ON m.SUCURSAL_NOMBRE = s.nombre
 END
+
+
+CREATE PROCEDURE migrarReglas AS
+BEGIN
+	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_descuento,
+	regla_cant_aplicable_regla,regla_cant_max_prod,regla_descripcion,regla_descuento_aplicable_prod)
+	
+	SELECT REGLA_APLICA_MISMA_MARCA, REGLA_APLICA_MISMO_PROD, REGLA_CANT_APLICA_DESCUENTO, 
+	REGLA_CANT_APLICABLE_REGLA, REGLA_CANT_MAX_PROD, REGLA_DESCRIPCION, REGLA_DESCUENTO_APLICABLE_PROD 
+	FROM gd_esquema.Maestra
+	WHERE REGLA_DESCRIPCION IS NOT NULL
+END
+
+CREATE PROCEDURE migrarDescuentos AS
+BEGIN
+	INSERT INTO Pteradata.Descuento(descuento_codigo,descuento_descripcion, descuento_fecha_inicio, 
+	descuento_fecha_fin, descuento_porcentaje_desc, descuento_tope)
+	-- FALTA descuento_medio_pago nose de donde lo sacamos
+	SELECT DISTINCT DESCUENTO_CODIGO,DESCUENTO_DESCRIPCION, DESCUENTO_FECHA_INICIO, DESCUENTO_FECHA_FIN,
+	DESCUENTO_PORCENTAJE_DESC, DESCUENTO_TOPE FROM gd_esquema.Maestra
+	WHERE DESCUENTO_CODIGO IS NOT NULL
+END
