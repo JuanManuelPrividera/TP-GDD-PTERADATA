@@ -170,9 +170,16 @@ CREATE TABLE Pteradata.Envio(
 
 CREATE TABLE Pteradata.Categoria(
 	producto_categoria VARCHAR(255) PRIMARY KEY,
-	producto_sub_categoria VARCHAR(255),
-	FOREIGN KEY (producto_sub_categoria) REFERENCES Pteradata.Categoria(producto_categoria)
 );
+
+CREATE TABLE Pteradata.SubCategoria(
+	producto_sub_categoria VARCHAR(255),
+	producto_categoria VARCHAR(255),
+	PRIMARY KEY (producto_sub_categoria, producto_categoria),
+	FOREIGN KEY (producto_categoria) REFERENCES Pteradata.Categoria(producto_categoria)
+);
+
+
 
 
 CREATE TABLE Pteradata.Producto(
