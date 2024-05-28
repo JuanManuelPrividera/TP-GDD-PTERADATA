@@ -25,11 +25,7 @@ BEGIN
 		EXEC migrarTarjetas;
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
-<<<<<<< HEAD
 		-- EXEC migrarPago;
-=======
-		EXEC migrarReglas;
->>>>>>> a1becea (Promocion)
 	END TRY 
 	BEGIN CATCH 
 		ROLLBACK
@@ -38,15 +34,12 @@ BEGIN
 	COMMIT TRANSACTION 
 END 
 */
-<<<<<<< HEAD
 --exec migrarTodo
 
 
-=======
 exec migrarTodo
 --select * from Provincia
 --exec migrarProvincia;
->>>>>>> a1becea (Promocion)
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -55,9 +48,7 @@ BEGIN
 	SELECT DISTINCT CLIENTE_PROVINCIA FROM gd_esquema.Maestra
 	WHERE CLIENTE_PROVINCIA IS NOT NULL AND SUPER_PROVINCIA IS NOT NULL
 	UNION 
-	SELECT DISTINCT SUCURSAL_PROVINCIA FROM gd_esquema.Maestra
-
-	
+	SELECT DISTINCT SUCURSAL_PROVINCIA FROM gd_esquema.Maestra	
 END
 
 CREATE PROCEDURE migrarLocalidad AS
@@ -240,10 +231,7 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago
 END
 
-<<<<<<< HEAD
-/*
-=======
->>>>>>> a1becea (Promocion)
+
 CREATE PROCEDURE migrarPago AS
 BEGIN
 	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago)
@@ -252,11 +240,7 @@ BEGIN
 	JOIN Pteradata.TipoPagoMedioPago t ON (t.id_pago_tipo_medio_pago = m.id_pago_tipo_medio_pago
 	AND g.PAGO_TIPO_MEDIO_PAGO = t.pago_tipo_medio_pago)
 END
-*/
 
-<<<<<<< HEAD
-
-=======
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN 
 	INSERT INTO Pteradata.DetallePago(nro_tarjeta, nro_pago, cant_cuotas)
@@ -273,5 +257,12 @@ BEGIN
 	JOIN Pteradata.Reglas r ON r.regla_descripcion = g.REGLA_DESCRIPCION
 END
 
+CREATE PROCEDURE migrarPromocionPorProducto AS
+BEGIN
+	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo)
+	SELECT g.PROMO_CODIGO, p.producto_codigo FROM gd_esquema.Maestra g
+	JOIN Pteradata.Producto p ON p.producto_descripcion = g.PRODUCTO_DESCRIPCION
+END
 
->>>>>>> a1becea (Promocion)
+
+
