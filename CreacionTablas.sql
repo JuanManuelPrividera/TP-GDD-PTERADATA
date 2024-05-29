@@ -196,7 +196,7 @@ CREATE TABLE Pteradata.Producto(
 
 
 
-
+/*
 CREATE TABLE Pteradata.Promocion(
 	promo_codigo DECIMAL(18,0) PRIMARY KEY,
 	id_reglas INT,
@@ -206,13 +206,24 @@ CREATE TABLE Pteradata.Promocion(
 	promocion_descripcion VARCHAR(255),
 	FOREIGN KEY (id_reglas) REFERENCES Pteradata.Reglas(id_reglas)
 );
+*/
 
 CREATE TABLE Pteradata.PromocionPorProducto(
 	promo_codigo DECIMAL(18,0),
 	producto_codigo INT,
-	producto_precio_dto DECIMAL(18,2),
+	promocion_fecha_inicio DATETIME,
+	promocion_fecha_fin DATETIME,
+	promocion_descripcion VARCHAR(255),
 	PRIMARY KEY (promo_codigo, producto_codigo),
-	FOREIGN KEY (promo_codigo) REFERENCES Pteradata.Promocion(promo_codigo),
+	FOREIGN KEY (producto_codigo) REFERENCES Pteradata.Producto(producto_codigo),
+);
+
+CREATE TABLE Pteradata.PromocionAplicada(
+	promo_codigo DECIMAL(18,0),
+	producto_codigo INT,
+	precio_dto_aplicado DECIMAL(18,2),
+	PRIMARY KEY (promo_codigo, producto_codigo),
+	FOREIGN KEY (promo_codigo, producto_codigo) REFERENCES Pteradata.PromocionPorProducto(promo_codigo, producto_codigo),
 	FOREIGN KEY (producto_codigo) REFERENCES Pteradata.Producto(producto_codigo),
 );
 

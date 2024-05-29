@@ -310,6 +310,16 @@ END
 
 go
 
+CREATE PROCEDURE migrarPromocionPorProducto AS
+BEGIN
+	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo,promocion_fecha_inicio,promocion_fecha_fin,promocion_descripcion)
+	SELECT PROMO_CODIGO, p.producto_codigo, PROMOCION_FECHA_INICIO, PROMOCION_FECHA_FIN, PROMOCION_DESCRIPCION
+	FROM gd_esquema.Maestra m JOIN Pteradata.Producto p ON m.PRODUCTO_NOMBRE = p.producto_nombre
+							  JOIN Pteradata.Marca mr ON m.PRODUCTO_MARCA = mr.producto_marca
+END
+
+go
+
 CREATE PROCEDURE migrarEnvio AS
 BEGIN
 	INSERT INTO Pteradata.Envio(costo, fecha_programada, hora_inicio, hora_fin, e.id_estado, cliente_id, ticket_num)
