@@ -161,6 +161,7 @@ CREATE TABLE Pteradata.Envio(
 	hora_inicio DATETIME,
 	hora_fin DATETIME,
 	id_estado INT,
+	fecha_entregado DATETIME,
 	
 	FOREIGN KEY(cliente_id) REFERENCES Pteradata.Cliente(id_cliente),
 	FOREIGN KEY(ticket_num) REFERENCES Pteradata.Ticket(ticket_num),

@@ -26,6 +26,9 @@ BEGIN
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
 		-- EXEC migrarPago;
+		--EXEC migrarDetallePago;
+		EXEC migrarPromocion;
+		EXEC migrarPromocionPorProducto;
 	END TRY 
 	BEGIN CATCH 
 		ROLLBACK
@@ -37,7 +40,7 @@ END
 --exec migrarTodo
 
 
-exec migrarTodo
+--exec migrarTodo
 --select * from Provincia
 --exec migrarProvincia;
 CREATE PROCEDURE migrarProvincia AS
@@ -184,7 +187,7 @@ CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(estado)
 	SELECT DISTINCT ENVIO_ESTADO FROM gd_esquema.Maestra
-	WHERE ENVIO_ESTADO IS NOT NULL
+	WHERE ENVIO_ESTADO IS NOT NULL 
 END
 
 go
@@ -305,6 +308,17 @@ BEGIN
 	JOIN Pteradata.Producto p ON p.producto_descripcion = g.PRODUCTO_DESCRIPCION
 END
 
+go
+
+CREATE PROCEDURE migrarEnvio AS
+BEGIN
+	INSERT INTO Pteradata.Envio(costo, fecha_programada, hora_inicio, hora_fin, e.id_estado, cliente_id, ticket_num)
+		SELECT g.ENVIO_COSTO, g.ENVIO_FECHA_PROGRAMADA, g.ENVIO_HORA_INICIO, g.ENVIO_HORA_FIN, e.id_estado, c.id_cliente, t.ticket_num
+			FROM gd_esquema.Maestra g
+			JOIN Pteradata.EnvioEstado e ON e.estado = g.ENVIO_ESTADO
+			JOIN Pteradata.Cliente c ON c.
+			JOIN Pteradata.Ticket t on t.
+END
 
 
 
