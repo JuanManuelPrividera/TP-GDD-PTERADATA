@@ -1,9 +1,6 @@
 /*
 CREATE PROCEDURE migrarTodo AS
 BEGIN
-	BEGIN TRANSACTION 
-	
-	BEGIN TRY 
 		EXEC migrarProvincia;
 		EXEC migrarLocalidad;
 		EXEC migrarDireccion;
@@ -25,24 +22,20 @@ BEGIN
 		EXEC migrarTarjetas;
 		EXEC migrarTipoPagoMedioPago;
 		EXEC migrarMedioPago;
-		-- EXEC migrarPago;
+		--EXEC migrarPago;
 		--EXEC migrarDetallePago;
-		EXEC migrarPromocion;
-		EXEC migrarPromocionPorProducto;
-	END TRY 
-	BEGIN CATCH 
-		ROLLBACK
-	END CATCH
+		--EXEC migrarPromocion;
+		--EXEC migrarPromocionPorProducto;
+		--EXEC migrarEnvio;
+		EXEC migrarTicket;
 
-	COMMIT TRANSACTION 
 END 
 */
 --exec migrarTodo
+--drop PROCEDURE migrarTodo
 
 
---exec migrarTodo
---select * from Provincia
---exec migrarProvincia;
+
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -175,7 +168,6 @@ CREATE PROCEDURE migrarDescuentos AS
 BEGIN
 	INSERT INTO Pteradata.Descuento(descuento_codigo,descuento_descripcion, descuento_fecha_inicio, 
 	descuento_fecha_fin, descuento_porcentaje_desc, descuento_tope)
-	-- FALTA descuento_medio_pago nose de donde lo sacamos
 	SELECT DISTINCT DESCUENTO_CODIGO,DESCUENTO_DESCRIPCION, DESCUENTO_FECHA_INICIO, DESCUENTO_FECHA_FIN,
 	DESCUENTO_PORCENTAJE_DESC, DESCUENTO_TOPE FROM gd_esquema.Maestra
 	WHERE DESCUENTO_CODIGO IS NOT NULL
@@ -226,7 +218,7 @@ BEGIN
 END
 
 go
-
+select * from Pteradata.Producto order by id_marca, producto_codigo
 CREATE PROCEDURE migrarProductos AS
 BEGIN
 	INSERT INTO Pteradata.Producto( producto_categoria, producto_nombre,id_marca,producto_descripcion, producto_precio)
@@ -247,6 +239,8 @@ END
 
 go
 
+
+
 CREATE PROCEDURE migrarPagoMedioTipoPago AS
 BEGIN 
 	INSERT INTO Pteradata.TipoPagoMedioPago(pago_tipo_medio_pago)
@@ -262,6 +256,7 @@ END
 
 go
 
+
 CREATE PROCEDURE migrarMedioPago AS
 BEGIN
 	INSERT INTO Pteradata.MedioPago(pago_medio_pago, id_pago_tipo_medio_pago)
@@ -271,7 +266,7 @@ END
 
 go
 
-CREATE PROCEDURE migrarPago AS
+CREATE PROCEDURE migrarPago AS --FALTA ID CLIENTE
 BEGIN
 	INSERT INTO Pteradata.Pago(pago_fecha,pago_importe, id_medio_pago)
 	SELECT PAGO_FECHA, PAGO_IMPORTE, m.id_medio_pago FROM gd_esquema.Maestra g
@@ -282,6 +277,7 @@ END
 
 go
 
+/*
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN 
 	INSERT INTO Pteradata.DetallePago(nro_tarjeta, nro_pago, cant_cuotas)
@@ -289,6 +285,7 @@ BEGIN
 	JOIN Pteradata.Tarjeta t ON m.PAGO_TARJETA_NRO = t.nro_tarjeta
 	JOIN Pteradata.Pago p ON p.
 END
+*/
 
 go
 
@@ -303,16 +300,7 @@ go
 
 CREATE PROCEDURE migrarPromocionPorProducto AS
 BEGIN
-	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo)
-	SELECT g.PROMO_CODIGO, p.producto_codigo FROM gd_esquema.Maestra g
-	JOIN Pteradata.Producto p ON p.producto_descripcion = g.PRODUCTO_DESCRIPCION
-END
-
-go
-
-CREATE PROCEDURE migrarPromocionPorProducto AS
-BEGIN
-	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo,promocion_fecha_inicio,promocion_fecha_fin,promocion_descripcion)
+	INSERT INTO Pteradata.PromocionPorProducto(promo_codigo, producto_codigo, promocion_fecha_inicio, promocion_fecha_fin, promocion_descripcion)
 	SELECT PROMO_CODIGO, p.producto_codigo, PROMOCION_FECHA_INICIO, PROMOCION_FECHA_FIN, PROMOCION_DESCRIPCION
 	FROM gd_esquema.Maestra m JOIN Pteradata.Producto p ON m.PRODUCTO_NOMBRE = p.producto_nombre
 							  JOIN Pteradata.Marca mr ON m.PRODUCTO_MARCA = mr.producto_marca
@@ -320,6 +308,7 @@ END
 
 go
 
+/*
 CREATE PROCEDURE migrarEnvio AS
 BEGIN
 	INSERT INTO Pteradata.Envio(costo, fecha_programada, hora_inicio, hora_fin, e.id_estado, cliente_id, ticket_num)
@@ -329,6 +318,49 @@ BEGIN
 			JOIN Pteradata.Cliente c ON c.
 			JOIN Pteradata.Ticket t on t.
 END
+*/
+
+CREATE PROCEDURE migrarTicket AS
+BEGIN
+
+	INSERT INTO Pteradata.Ticket(ticket_num, sucursal_num, id_caja, legajo_empleado, id_tipo_comprobante, ticket_total_descuento_aplicado,
+								 ticket_det_descuento_medio_pago, ticket_fecha_hora, ticket_total_envio)
+
+		SELECT DISTINCT m.TICKET_NUMERO, s.sucursal_num, c.id_caja ,e.legajo, t.id_tipo_comprobante, m.TICKET_TOTAL_DESCUENTO_APLICADO, m.TICKET_TOTAL_DESCUENTO_APLICADO_MP,
+			   m.TICKET_FECHA_HORA, m.TICKET_TOTAL_ENVIO
+			FROM gd_esquema.Maestra m
+			left JOIN Pteradata.Direccion d on d.domicilio = m.SUCURSAL_DIRECCION
+			left JOIN Pteradata.TipoDeComprobante t on t.tipo_comprobante = m.TICKET_TIPO_COMPROBANTE 
+			right JOIN Pteradata.Empleado e on e.dni = m.EMPLEADO_DNI 
+			left JOIN Pteradata.Sucursal s on s.id_direccion = d.id_direccion
+			right JOIN Pteradata.Caja c on c.sucursal_num = s.sucursal_num
+		order by TICKET_NUMERO
+
+END
+
+select * from Pteradata.Empleado
+
+go
+
+CREATE PROCEDURE migrarTicketPorProductos AS 
+BEGIN
+
+	INSERT INTO Pteradata.TicketPorProductos (ticket_numero, producto_codigo, ticket_subtotal_productos, ticket_det_cantidad, 
+											  producto_precio, producto_precio_dto, ticket_det_total)
+
+		SELECT t.ticket_num, p.producto_codigo, m.TICKET_SUBTOTAL_PRODUCTOS, m.TICKET_DET_CANTIDAD, p.producto_precio, m.PROMO_APLICADA_DESCUENTO, m.TICKET_DET_TOTAL
+			FROM gd_esquema.Maestra m
+			JOIN Pteradata.Ticket t on t.ticket_num = m.TICKET_NUMERO
+			JOIN Pteradata.Producto p on p.producto_descripcion = m.PRODUCTO_DESCRIPCION
+
+END
 
 
+select count(CAJA_NUMERO)
+	from gd_esquema.Maestra
+	group by TICKET_NUMERO, TICKET_FECHA_HORA, SUCURSAL_DIRECCION, CAJA_TIPO
 
+
+select * from Pteradata.Producto
+
+select * from Pteradata.Ticket
