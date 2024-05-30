@@ -1,5 +1,5 @@
 
---CREATE SCHEMA Pteradata;
+CREATE SCHEMA Pteradata
 
 --DROP PROCEDURE crearTodasLasTablas;
 --exec crearTodasLasTablas; 
