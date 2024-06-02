@@ -10,3 +10,4 @@ WHERE s.name = @SchemaName;
 -- Ejecutar las sentencias DROP TABLE
 EXEC sp_executesql @sql;
 
+

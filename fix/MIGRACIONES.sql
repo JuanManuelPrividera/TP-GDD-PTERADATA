@@ -1,326 +1,8 @@
---CREATE SCHEMA Pteradata
+﻿CREATE SCHEMA Pteradata
 
 GO
 
-CREATE PROCEDURE crearTodasLasTablas AS 
-BEGIN
-
-CREATE TABLE Pteradata.Descuento(
-	descuento_codigo DECIMAL (18,0) PRIMARY KEY,
-	descuento_descripcion VARCHAR (255),
-	descuento_fecha_inicio DATE,
-	descuento_fecha_fin DATE,
-	descuento_porcentaje_desc DECIMAL(18,2),
-	descuento_tope DECIMAL(18,2)
-);
-
-
-CREATE TABLE Pteradata.CajaTipo(
-	id_caja_tipo INT PRIMARY KEY IDENTITY(1,1),
-	caja_tipo VARCHAR(255)
-
-);
-
-CREATE TABLE Pteradata.EnvioEstado(
-	id_estado INT PRIMARY KEY IDENTITY(1,1),
-	estado VARCHAR(255)
-);
-
-CREATE TABLE Pteradata.ContactoEmpleado(
-	legajo_empleado INT PRIMARY KEY,
-	email VARCHAR(255),
-	telefono DECIMAL(18,0)
-	FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo)
-);
-
-create table Pteradata.Marca(
-	id_marca INT PRIMARY KEY IDENTITY(1,1),
-	marca VARCHAR(255)
-)
-
-
-CREATE TABLE Pteradata.TipoDeComprobante(
-	tipo_comprobante VARCHAR(255) PRIMARY KEY
-);
-
-CREATE TABLE Pteradata.Reglas(
-	id_reglas INT PRIMARY KEY IDENTITY(1,1),
-	regla_aplica_misma_marca DECIMAL(18,0),
-	regla_aplica_mismo_prod DECIMAL(18,0),
-	regla_cant_aplica_descuento DECIMAL(18,0),
-	regla_cant_aplicable_regla DECIMAL (18,0),
-	regla_cant_max_prod DECIMAL (18,0),
-	regla_descripcion VARCHAR(255),
-	regla_descuento_aplicable_prod DECIMAL(18,2)
-);
-
-CREATE TABLE Pteradata.Provincia (
-	id_provincia INT PRIMARY KEY IDENTITY(1,1),
-	provincia_nombre VARCHAR(255) UNIQUE,
-);
-
-CREATE TABLE Pteradata.Localidad (
-	id_localidad INT PRIMARY KEY IDENTITY(1,1),
-	id_provincia INT,
-	FOREIGN KEY (id_provincia) REFERENCES Pteradata.Provincia(id_provincia),
-	localidad_nombre VARCHAR(255) 
-);
-
-CREATE TABLE Pteradata.Direccion(
-	id_direccion INT PRIMARY KEY IDENTITY(1,1),
-	domicilio VARCHAR(255),
-	id_localidad INT,
-	FOREIGN KEY(id_localidad) REFERENCES Pteradata.Localidad(id_localidad) 
-)
-
-CREATE TABLE Pteradata.Supermercado(
-	cuit VARCHAR(255) PRIMARY KEY,
-	id_direccion INT,
-	nombre VARCHAR(255),
-	razon VARCHAR(255),
-	iibb VARCHAR(255),
-	fecha_ini_actividad DATETIME,
-	condicion_fiscal VARCHAR(255),
-	FOREIGN KEY (id_direccion) REFERENCES Pteradata.Direccion(id_direccion)
-
-);
-
-
-CREATE TABLE Pteradata.Sucursal(
-	sucursal_nombre VARCHAR(255) PRIMARY KEY,
-	id_direccion INT,
-	cuit VARCHAR(255),
-	FOREIGN KEY(id_direccion) REFERENCES Pteradata.Direccion(id_direccion),
-	FOREIGN KEY(cuit) REFERENCES Pteradata.Supermercado(cuit)
-);
-
-CREATE TABLE Pteradata.Caja(
-	id_caja INT PRIMARY KEY IDENTITY(1,1),
-	caja_num DECIMAL(18,0),
-	sucursal_nombre VARCHAR(255),
-	id_caja_tipo INT,
-	FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
-	FOREIGN KEY(id_caja_tipo) REFERENCES Pteradata.CajaTipo(id_caja_tipo)
-);
-
-CREATE TABLE Pteradata.Empleado(
-	legajo INT PRIMARY KEY IDENTITY(100000,1),
-	sucursal_nombre VARCHAR(255),
-	id_caja INT,
-	dni DECIMAL(18,0),
-	nombre VARCHAR(255),
-	apellido VARCHAR(255),
-	fecha_nacimiento DATETIME,
-	fecha_registro DATETIME,
-	FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
-	FOREIGN KEY (id_caja) REFERENCES Pteradata.Caja(id_caja)
-);
-
-CREATE TABLE Pteradata.Cliente(
-	id_cliente INT PRIMARY KEY IDENTITY(1,1), 
-	dni_cliente DECIMAL(18,0),
-	id_direccion INT,
-	FOREIGN KEY(id_direccion) REFERENCES Pteradata.Direccion(id_direccion),
-	cliente_nombre VARCHAR(255),
-	cliente_apellido VARCHAR(255),
-	cliente_fecha_registro DATE,
-	cliente_telefono DECIMAL (18,0),
-	cliente_mail VARCHAR(255),
-	cliente_fecha_nacimiento DATE,
-);
-
-CREATE TABLE Pteradata.Ticket(
-	id_ticket INT PRIMARY KEY IDENTITY(1,1),
-	ticket_num DECIMAL(18,0),
-	sucursal_nombre VARCHAR(255),
-	id_caja INT,
-	legajo_empleado INT,
-	tipo_comprobante VARCHAR(255),
-	ticket_total DECIMAL (18,2),
-	ticket_subtotal_productos DECIMAL(18,2),
-	ticket_total_descuento_aplicado DECIMAL(18,2),
-	ticket_det_descuento_medio_pago  DECIMAL(18,2),
-	ticket_fecha_hora DATETIME,
-	ticket_total_envio DECIMAL(18,2),
-	FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal (sucursal_nombre),
-	FOREIGN KEY (id_caja) REFERENCES Pteradata.Caja(id_caja),
-	FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo),
-	FOREIGN KEY (tipo_comprobante) REFERENCES Pteradata.TipoDeComprobante(tipo_comprobante)
-);
-
-CREATE TABLE Pteradata.Envio(
-	id_envio INT PRIMARY KEY IDENTITY(1,1),
-	cliente_id INT,
-	id_ticket INT,
-	costo DECIMAL(18,2),
-	fecha_programada DATETIME,
-	hora_inicio DATETIME,
-	hora_fin DATETIME,
-	id_estado INT,
-	fecha_entregado DATETIME,
-	
-	FOREIGN KEY(cliente_id) REFERENCES Pteradata.Cliente(id_cliente),
-	FOREIGN KEY(id_ticket) REFERENCES Pteradata.Ticket(id_ticket),
-	FOREIGN KEY (id_estado) REFERENCES Pteradata.EnvioEstado(id_estado)
-);
-
-
-CREATE TABLE Pteradata.Categoria(
-	id_categoria INT PRIMARY KEY IDENTITY(1,1),
-	categoria VARCHAR(255),
-	subcategoria VARCHAR (255)
-)
-
-CREATE TABLE Pteradata.Producto(
-	id_prod INT PRIMARY KEY IDENTITY(1,1),
-	nombre VARCHAR(255),
-	descripcion VARCHAR(255),
-	id_cat INT,
-	FOREIGN KEY (id_cat) REFERENCES Pteradata.Categoria(id_categoria),
-)
-
-CREATE TABLE Pteradata.ProductoPorMarca(
-	id_ProdXMarca INT PRIMARY KEY IDENTITY(1,1),
-	id_prod INT,
-	prod_nombre VARCHAR(255),
-	id_marca INT,
-	marca_nombre VARCHAR(255),
-	prod_precio DECIMAL(18,2),
-	FOREIGN KEY (id_prod) REFERENCES Pteradata.Productos(id_prod),
-	FOREIGN KEY (id_marca) REFERENCES Pteradata.Marca(id_marca)
-)
-
-CREATE TABLE Pteradata.ProductoPorCategoria(
-	producto_categoria VARCHAR(255),
-	producto_nombre VARCHAR(255),
-	PRIMARY KEY (producto_nombre,producto_categoria),
-	FOREIGN KEY (producto_categoria) REFERENCES Pteradata.Categoria(producto_categoria),
-	FOREIGN KEY (producto_nombre) REFERENCES Pteradata.Producto(producto_nombre),
-);
-
-
-CREATE TABLE Pteradata.Promocion(
-	codigo decimal(18,0) PRIMARY KEY,
-	descripcion VARCHAR(255),
-	fecha_inicio DATETIME,
-	fecha_fin DATETIME,
-	id_regla INT
-	FOREIGN KEY (id_regla) REFERENCES Pteradata.Reglas(id_reglas)
-)
-
-
-CREATE TABLE Pteradata.PromocionPorProducto(
-	id_PromoXProd INT PRIMARY KEY IDENTITY(1,1),
-	id_prod INT,
-	promo_codigo decimal(18,0),
-	FOREIGN KEY (id_prod) REFERENCES Pteradata.Productos(id_prod),
-	FOREIGN KEY (promo_codigo) REFERENCES Pteradata.Promociones(codigo)
-)
-
-CREATE TABLE Pteradata.PromocionAplicada(
-	id_PromoXProd INT,
-	id_ticket_producto INT,
-	promo_aplicada_dto DECIMAL(18,2),
-	PRIMARY KEY (id_PromoXProd, id_ticket_producto),
-	FOREIGN KEY (id_PromoXProd) REFERENCES Pteradata.PromocionPorProducto(id_PromoXProd),
-	FOREIGN KEY (id_ticket_producto) REFERENCES Pteradata.TicketPorProductos(id_ticket_producto)
-);
-
-CREATE TABLE Pteradata.TicketPorProductos(
-	id_ticket_producto INT PRIMARY KEY IDENTITY(1,1),
-	id_ticket INT,
-	id_ProdXMarca INT,
-	prod_nombre VARCHAR(255),
-	marca_nombre VARCHAR(255),
-	ticket_det_cantidad DECIMAL(18,0),
-	ticket_det_precio DECIMAL(18,2),
-	ticket_det_total DECIMAL(18,2),
-	FOREIGN KEY (id_ticket ) REFERENCES Pteradata.Ticket(id_ticket ),
-	FOREIGN KEY (id_ProdXMarca) REFERENCES Pteradata.ProductosXMarca(id_ProdXMarca)
-);
-
-CREATE TABLE Pteradata.TipoPagoMedioPago (
-	id_pago_tipo_medio_pago INT PRIMARY KEY IDENTITY(1,1),
-	pago_tipo_medio_pago VARCHAR(255)
-);
-
-CREATE TABLE Pteradata.MedioPago (
-	id_medio_pago INT PRIMARY KEY IDENTITY(1,1),
-	pago_medio_pago VARCHAR(255) UNIQUE,
-	id_pago_tipo_medio_pago INT,
-	FOREIGN KEY (id_pago_tipo_medio_pago) REFERENCES Pteradata.TipoPagoMedioPago(id_pago_tipo_medio_pago)
-);
-
-CREATE TABLE Pteradata.Tarjeta(
-	nro_tarjeta VARCHAR(50) PRIMARY KEY,
-	tarjeta_fecha_vencimiento DATETIME
-);
-
-CREATE TABLE Pteradata.Pago(
-	nro_pago INT PRIMARY KEY IDENTITY(1,1),
-	pago_fecha DATETIME, 
-	pago_importe DECIMAL(18,2),
-	id_medio_pago INT,
-	FOREIGN KEY(id_medio_pago) REFERENCES Pteradata.MedioPago(id_medio_pago)
-);
-
-CREATE TABLE Pteradata.DetallePago (
-	id_pago_detalle INT PRIMARY KEY IDENTITY(1,1),
-	nro_tarjeta VARCHAR(50),
-	cant_cuotas DECIMAL(18,0),
-	nro_pago INT,
-	id_cliente INT,
-	cliente_dni DECIMAL(18,0),
-	cliente_nombre VARCHAR(255),
-	cliente_apellido VARCHAR(255),
-	FOREIGN KEY(nro_pago) REFERENCES Pteradata.Pago(nro_pago),
-	FOREIGN KEY (nro_tarjeta) REFERENCES Pteradata.Tarjeta(nro_tarjeta),
-	FOREIGN KEY (id_cliente) REFERENCES Pteradata.Cliente(id_cliente)
-);
-
-
-
-CREATE TABLE Pteradata.DescuetoPorPago(
-	id_pago INT,
-	descuento_codigo DECIMAL(18,0),
-	descuento_aplicado DECIMAL(18,2),
-	FOREIGN KEY(id_pago) REFERENCES Pteradata.Pago(nro_pago),
-	FOREIGN KEY(descuento_codigo) REFERENCES Pteradata.Descuento(descuento_codigo),
-
-	PRIMARY KEY (id_pago, descuento_codigo)
-);
-
-CREATE TABLE Pteradata.PagoPorTicket(
-	nro_pago INT,
-	id_ticket INT,
-	FOREIGN KEY(nro_pago) REFERENCES Pteradata.Pago(nro_pago),
-	FOREIGN KEY (id_ticket ) REFERENCES Pteradata.Ticket(id_ticket ),
-	PRIMARY KEY (nro_pago, id_ticket)
-);
-END
-/*
-Con este procedure creamos todas las tablas con los datos necesarios 
-segun el modelo de datos que creamos
-*/
-
-
-GO
-
-EXEC crearTodasLasTablas
-
-GO
-
-CREATE PROCEDURE migrarTipoComprobantes AS
-BEGIN
-	INSERT INTO Pteradata.TipoDeComprobante(tipo_comprobante)
-	SELECT DISTINCT TICKET_TIPO_COMPROBANTE FROM gd_esquema.Maestra
-END
-/*
-El objetivo de este procedimiento es el de migrar los distintos tipos de comprobantes 
-que existen en la tabla maestra hacia la tabla TipoDeComprobante
-*/
-GO
-
+-- Este ya está
 CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
@@ -334,10 +16,11 @@ END
 /*
 El objetivo de este procedimiento es migrar las distintas provincias existentes 
 hacia la tabla Provincia. Utilizamos SELECT DISTINCT y UNION para asegurarnos e que se insterten provincias 
-�nicas.
+únicas.
 */
 go
 
+-- Este ya está
 CREATE PROCEDURE migrarLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.Localidad(localidad_nombre, id_provincia)
@@ -349,7 +32,6 @@ BEGIN
 	UNION
 	SELECT DISTINCT SUCURSAL_LOCALIDAD, p.id_provincia FROM gd_esquema.Maestra
 	JOIN Pteradata.Provincia p ON SUCURSAL_PROVINCIA = p.provincia_nombre
-	
 END
 /*
 El objetivo de este procedimiento es migrar los nombres de todas las localidades existentes
@@ -491,8 +173,8 @@ GO
 
 CREATE PROCEDURE migrarReglas AS
 BEGIN
-	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_descuento,
-	regla_cant_aplicable_regla,regla_cant_max_prod,regla_descripcion,regla_descuento_aplicable_prod)
+	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_Descuento,
+	regla_cant_aplicable_regla,regla_cant_max_prod,regla_Descripcion,regla_Descuento_aplicable_prod)
 	
 	SELECT DISTINCT REGLA_APLICA_MISMA_MARCA, REGLA_APLICA_MISMO_PROD, REGLA_CANT_APLICA_DESCUENTO, 
 	REGLA_CANT_APLICABLE_REGLA, REGLA_CANT_MAX_PROD, REGLA_DESCRIPCION, REGLA_DESCUENTO_APLICABLE_PROD 
@@ -500,7 +182,7 @@ BEGIN
 	WHERE REGLA_DESCRIPCION IS NOT NULL
 END
 /*
-Este procedimiento tiene como objetivo migrar las diferentes reglas que hay sobre las promociones
+Este procedimiento tiene como objetivo migrar las diferentes reglas que hay sobre las Promociones
 hacia la tabla Reglas.
 Utilizamos SELECT DISTINCT para evitar la repeticion de las reglas.
 */
@@ -508,16 +190,16 @@ GO
 
 CREATE PROCEDURE migrarDescuentos AS
 BEGIN
-	INSERT INTO Pteradata.Descuento(descuento_codigo,descuento_descripcion, descuento_fecha_inicio, 
-	descuento_fecha_fin, descuento_porcentaje_desc, descuento_tope)
+	INSERT INTO Pteradata.Descuento(Descuento_Codigo,Descuento_Descripcion, Descuento_fecha_inicio, 
+	Descuento_fecha_fin, Descuento_porcentaje_desc, Descuento_tope)
 	SELECT DISTINCT DESCUENTO_CODIGO,DESCUENTO_DESCRIPCION, DESCUENTO_FECHA_INICIO, DESCUENTO_FECHA_FIN,
 	DESCUENTO_PORCENTAJE_DESC, DESCUENTO_TOPE FROM gd_esquema.Maestra
 	WHERE DESCUENTO_CODIGO IS NOT NULL
 END
 /*
-Este procedimiento tiene como objetivo migrar los diferentes descuentos que hay sobre los pagos
+Este procedimiento tiene como objetivo migrar los diferentes Descuentos que hay sobre los pagos
 hacia la tabla Descuento.
-Utilizamos SELECT DISTINCT para evitar la repeticion de los descuentos.
+Utilizamos SELECT DISTINCT para evitar la repeticion de los Descuentos.
 */
 GO
 
@@ -569,7 +251,7 @@ WITH PRODS AS (
     JOIN Pteradata.Categoria c ON c.categoria = g.PRODUCTO_CATEGORIA AND c.subcategoria = g.PRODUCTO_SUB_CATEGORIA
     WHERE g.PRODUCTO_NOMBRE IS NOT NULL
 )
-INSERT INTO Pteradata.Productos(nombre,descripcion,id_cat)
+INSERT INTO Pteradata.Productos(nombre,Descripcion,id_cat)
 SELECT
     p.nombre, p.descr, p.id_cat
 FROM PRODS p 
@@ -600,8 +282,8 @@ GO
 
 CREATE PROCEDURE AS migrarProductoPorMarca AS
 BEGIN
-insert into Pteradata.ProductosXMarca(id_prod,prod_nombre,id_marca,marca_nombre,prod_precio)
-SELECT DISTINCT p.id_prod,p.nombre,m.id_marca,m.marca, PRODUCTO_PRECIO
+insert into Pteradata.ProductoPorMarca(id_producto,prod_nombre,id_marca,marca_nombre,prod_precio)
+SELECT DISTINCT p.id_producto,p.nombre,m.id_marca,m.marca, PRODUCTO_PRECIO
 from gd_esquema.Maestra g JOIN Pteradata.Productos p ON p.nombre = g.PRODUCTO_NOMBRE
 JOIN Pteradata.Marca m ON g.PRODUCTO_MARCA = m.marca
 END
@@ -692,14 +374,14 @@ WITH DetalleCliente AS (
         AND g.PAGO_FECHA IS NOT NULL 
         AND g.PAGO_MEDIO_PAGO IS NOT NULL
 )
-INSERT INTO Pteradata.DetallePago(nro_tarjeta,cant_cuotas,nro_pago,id_cliente,cliente_dni,cliente_nombre,cliente_apellido)
+INSERT INTO Pteradata.DetallePago(nro_tarjeta,cant_cuotas,ID_Pago,id_cliente,cliente_dni,cliente_nombre,cliente_apellido)
 SELECT
     (CASE 
         WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
         ELSE tr.nro_tarjeta
     END) AS TARJETA,
 	dc.cuotas,
-	p.nro_pago,
+	p.ID_Pago,
 	c.id_cliente,
 	c.dni_cliente,
 	c.cliente_nombre,
@@ -726,46 +408,46 @@ GO
 
 CREATE PROCEDURE migrarPromocion AS
 BEGIN
-insert into Pteradata.Promociones(codigo, descripcion, fecha_inicio, fecha_fin, id_regla)
+insert into Pteradata.Promociones(Codigo, Descripcion, fecha_inicio, fecha_fin, id_regla)
 SELECT DISTINCT PROMO_CODIGO, PROMOCION_DESCRIPCION, PROMOCION_FECHA_INICIO, PROMOCION_FECHA_FIN,  r.id_reglas
-from gd_esquema.Maestra m JOIN Pteradata.Reglas r ON m.REGLA_DESCRIPCION = r.regla_descripcion
+from gd_esquema.Maestra m JOIN Pteradata.Reglas r ON m.REGLA_DESCRIPCION = r.regla_Descripcion
 where PROMO_CODIGO is not null
 END
 /*
-Este procedimiento tiene como objetivo migrar las diferentes promociones existentes
+Este procedimiento tiene como objetivo migrar las diferentes Promociones existentes
 hacia la tabla Promocion.
-Utilizamos SELECT DISTINCT para evitar la repeticion de promociones y el JOIN
-con la tabla Reglas para relacionar la promocion con la regla que sigue.
+Utilizamos SELECT DISTINCT para evitar la repeticion de Promociones y el JOIN
+con la tabla Reglas para relacionar la Promocion con la regla que sigue.
 */
 GO
 
 CREATE PROCEDURE migrarPromocionPorProducto AS
 BEGIN
-insert into Pteradata.PromocionPorProducto(id_prod,promo_codigo)
-SELECT DISTINCT pp.id_prod,pr.codigo
+insert into Pteradata.PromocionPorProducto(id_producto,Promocion_Codigo)
+SELECT DISTINCT pp.id_producto,pr.Codigo
 from (SELECT DISTINCT PRODUCTO_NOMBRE,PROMO_CODIGO
 from gd_esquema.Maestra ) g
 join Pteradata.Productos pp on pp.nombre = g.PRODUCTO_NOMBRE
-join Pteradata.Promociones pr on pr.codigo = g.PROMO_CODIGO
+join Pteradata.Promociones pr on pr.Codigo = g.PROMO_CODIGO
 where g.PROMO_CODIGO is not null and g.PRODUCTO_NOMBRE is not null
 END
 /*
-Este procedimiento tiene como objetivo relacionar las diferentes promociones con los productos sobre las que se aplican.
+Este procedimiento tiene como objetivo relacionar las diferentes Promociones con los productos sobre las que se aplican.
 */
 GO
 /* HAY QUE CAMBIAR ESTE PROCEDURE PARA Q FUNCIONE CON LAS NUEVAS TABLAS :)
 CREATE PROCEDURE migrarPomocionAplicada AS
 BEGIN
 
-	INSERT INTO Pteradata.PromocionAplicada(id_promocion_producto, promo_aplicada_dto)
-		SELECT DISTINCT pn.id_promocion_producto, g.PROMO_APLICADA_DESCUENTO
+	INSERT INTO Pteradata.PromocionAplicada(id_Promocion_producto, Promocion_aplicada_dto)
+		SELECT DISTINCT pn.id_Promocion_producto, g.PROMO_APLICADA_DESCUENTO
 			FROM gd_esquema.Maestra g
-			LEFT JOIN Pteradata.PromocionPorProducto pn on pn.promo_codigo = g.PROMO_CODIGO
-			where id_promocion_producto is not null
+			LEFT JOIN Pteradata.PromocionPorProducto pn on pn.Promocion_Codigo = g.PROMO_CODIGO
+			where id_Promocion_producto is not null
 END
 */
 /*
-Este procedimiento tiene como objetivo guardar el descuento aplicado sobre un producto en promocion.
+Este procedimiento tiene como objetivo guardar el Descuento aplicado sobre un producto en Promocion.
 */
 GO
 
@@ -801,7 +483,7 @@ GO
 
 CREATE PROCEDURE migrarTicket AS
 BEGIN
-INSERT INTO Pteradata.Ticket(ticket_num,sucursal_nombre,id_caja,legajo_empleado,tipo_comprobante,ticket_total,ticket_subtotal_productos,ticket_total_descuento_aplicado, ticket_det_descuento_medio_pago, ticket_fecha_hora, ticket_total_envio)
+INSERT INTO Pteradata.Ticket(ticket_num,sucursal_nombre,id_caja,legajo_empleado,tipo_comprobante,ticket_total,ticket_subtotal_productos,ticket_total_Descuento_aplicado, ticket_det_Descuento_medio_pago, ticket_fecha_hora, ticket_total_envio)
 SELECT DISTINCT TICKET_NUMERO,s.sucursal_nombre,c.id_caja,e.legajo,tc.tipo_comprobante,TICKET_TOTAL_TICKET, TICKET_SUBTOTAL_PRODUCTOS,TICKET_TOTAL_DESCUENTO_APLICADO,
 				TICKET_TOTAL_DESCUENTO_APLICADO_MP,TICKET_FECHA_HORA,TICKET_TOTAL_ENVIO
 from gd_esquema.Maestra g 
@@ -820,13 +502,25 @@ el empleado que lo genero y el tipo de comprobante del ticket.
 */
 GO
 
+CREATE PROCEDURE migrarTipoComprobantes AS
+BEGIN
+	INSERT INTO Pteradata.TipoDeComprobante(id_tipo_comprobante, Tipo_Comprobante_Descripcion, id_ticket)
+	SELECT DISTINCT TICKET_NUMERO, TICKET_TIPO_COMPROBANTE, t.id_ticket FROM gd_esquema.Maestra M
+	JOIN Pteradata.Ticket t on t.id_ticket = M.TICKET_NUMERO
+END
+/*
+El objetivo de este procedimiento es el de migrar los distintos tipos de comprobantes 
+que existen en la tabla maestra hacia la tabla TipoDeComprobante
+*/
+GO
+
 CREATE PROCEDURE migrarTicketPorProductos AS
 BEGIN
 INSERT INTO Pteradata.TicketPorProductos(id_ticket,id_ProdXMarca, prod_nombre,marca_nombre,ticket_det_cantidad,ticket_det_precio,ticket_det_total)
 SELECT distinct t.id_ticket,pm.id_ProdXMarca,pm.prod_nombre,pm.marca_nombre,TICKET_DET_CANTIDAD,TICKET_DET_PRECIO,TICKET_DET_TOTAL
 FROM gd_esquema.Maestra g
 JOIN Pteradata.Ticket t ON g.TICKET_NUMERO = t.ticket_num
-JOIN Pteradata.ProductosXMarca pm ON g.PRODUCTO_MARCA = pm.marca_nombre AND g.PRODUCTO_NOMBRE=pm.prod_nombre and pm.prod_precio = g.PRODUCTO_PRECIO
+JOIN Pteradata.ProductoPorMarca pm ON g.PRODUCTO_MARCA = pm.marca_nombre AND g.PRODUCTO_NOMBRE=pm.prod_nombre and pm.prod_precio = g.PRODUCTO_PRECIO
 END
 /*
 Este procedimiento tiene como objetivo migrar los diferentes items que tiene un ticket
@@ -836,8 +530,8 @@ GO
 
 CREATE PROCEDURE migrarPagoXTicket AS
 BEGIN
-	INSERT INTO Pteradata.PagoPorTicket(nro_pago, id_ticket)
-	SELECT p.nro_pago, t.id_ticket
+	INSERT INTO Pteradata.PagoPorTicket(ID_Pago, id_ticket)
+	SELECT p.ID_Pago, t.id_ticket
 	FROM gd_esquema.Maestra m JOIN Pteradata.Pago p ON m.PAGO_FECHA = p.pago_fecha AND m.PAGO_IMPORTE = p.pago_importe
 	JOIN Pteradata.Ticket t ON m.TICKET_NUMERO = t.ticket_num
 END
@@ -849,16 +543,16 @@ GO
 
 CREATE PROCEDURE migrarDescuentoXPago AS
 BEGIN
-	INSERT INTO Pteradata.DescuetoPorPago(id_pago,descuento_codigo,descuento_aplicado)
-	SELECT p.nro_pago, d.descuento_codigo, PAGO_DESCUENTO_APLICADO
+	INSERT INTO Pteradata.DescuetoPorPago(id_pago,Descuento_Codigo,Descuento_aplicado)
+	SELECT p.ID_Pago, d.Descuento_Codigo, PAGO_DESCUENTO_APLICADO
 	FROM gd_esquema.Maestra m
-	JOIN Pteradata.Descuento d ON m.DESCUENTO_CODIGO = d.descuento_codigo
+	JOIN Pteradata.Descuento d ON m.DESCUENTO_CODIGO = d.Descuento_Codigo
 	JOIN Pteradata.Pago p ON m.PAGO_FECHA = p.pago_fecha AND m.PAGO_IMPORTE = p.pago_importe 
 END
 
 
 /*
-Este procedimiento tiene como objetivo migrar los descuentos aplicados a los pagos
+Este procedimiento tiene como objetivo migrar los Descuentos aplicados a los pagos
 hacia la tabla DescuetoPorPago
 */
 GO
@@ -905,4 +599,4 @@ Este procedimiento tiene como objetivo realizar la ejecucion de todas las migrac
 */
 GO
 
-EXEC migrarTodo;
+--EXEC migrarTodo;
