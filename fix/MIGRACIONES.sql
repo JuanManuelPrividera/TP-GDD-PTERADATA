@@ -161,14 +161,26 @@ GO
 -- Este ya está
 CREATE PROCEDURE migrarCaja AS
 BEGIN
-	INSERT INTO Pteradata.Caja(sucursal_nombre, id_caja_tipo, legajo_empleado, caja_numero)
-	SELECT DISTINCT  sc.sucursal_nombre, ct.id_caja_tipo, e.legajo_empleado, m.CAJA_NUMERO
+	INSERT INTO Pteradata.Caja(sucursal_nombre, id_caja_tipo, caja_numero)
+	SELECT DISTINCT  sc.sucursal_nombre, ct.id_caja_tipo, m.CAJA_NUMERO
 	FROM gd_esquema.Maestra m 
 	JOIN Pteradata.Sucursal sc ON m.SUCURSAL_NOMBRE = sc.sucursal_nombre
 	JOIN Pteradata.CajaTipo ct ON m.CAJA_TIPO = ct.caja_tipo
-	JOIN Pteradata.Empleado e ON e.sucursal_nombre = m.SUCURSAL_NOMBRE
 	WHERE m.CAJA_NUMERO IS NOT NULL
 END
+
+GO
+
+CREATE PROCEDURE migrarEmpleadoPorCaja AS
+BEGIN
+	INSERT INTO Pteradata.EmpleadoPorCaja(legajo_empleado, id_caja)
+	SELECT DISTINCT  e.legajo_empleado, c.id_caja
+	FROM gd_esquema.Maestra M 
+	JOIN Pteradata.Empleado e ON e.empleado_dni = M.EMPLEADO_DNI 
+	JOIN Pteradata.Caja c ON c.caja_numero = M.CAJA_NUMERO AND c.sucursal_nombre = M.SUCURSAL_NOMBRE
+END
+
+
 
 /*
 Este procedimiento tiene como objetivo migrar los datos de las disitntas cajas 
@@ -396,19 +408,20 @@ GO
 -- NO ANDA
 CREATE PROCEDURE migrarTicket AS
 BEGIN
-	INSERT INTO Pteradata.Ticket(id_cliente,id_caja,sucursal_nombre,legajo_empleado,ticket_numero,ticket_total, ticket_total_envio,ticket_total_Descuento_aplicado, ticket_det_Descuento_medio_pago, 
-							ticket_fecha_hora,ticket_subtotal_productos)
-	SELECT DISTINCT cl.id_cliente,c.id_caja,s.sucursal_nombre,e.legajo_empleado,TICKET_NUMERO,TICKET_TOTAL_TICKET,TICKET_TOTAL_ENVIO,TICKET_TOTAL_DESCUENTO_APLICADO,
+	INSERT INTO Pteradata.Ticket(id_cliente,id_empleado_caja,sucursal_nombre,ticket_numero,ticket_total, ticket_total_envio,ticket_total_Descuento_aplicado, ticket_det_Descuento_medio_pago, 
+								ticket_fecha_hora,ticket_subtotal_productos)
+	SELECT DISTINCT cl.id_cliente,ec.id_empleado_caja,s.sucursal_nombre,TICKET_NUMERO,TICKET_TOTAL_TICKET,TICKET_TOTAL_ENVIO,TICKET_TOTAL_DESCUENTO_APLICADO,
 					TICKET_TOTAL_DESCUENTO_APLICADO_MP,TICKET_FECHA_HORA,TICKET_SUBTOTAL_PRODUCTOS
 	FROM gd_esquema.Maestra g 
-	JOIN Pteradata.Sucursal s ON g.SUCURSAL_NOMBRE = s.sucursal_nombre
-	JOIN Pteradata.Caja c ON g.CAJA_NUMERO = c.caja_numero AND s.sucursal_nombre = c.sucursal_nombre
-	JOIN Pteradata.Empleado e ON g.EMPLEADO_DNI = e.empleado_dni 
-	JOIN Pteradata.CajaTipo ct ON g.CAJA_TIPO = ct.caja_tipo
 	JOIN Pteradata.Cliente cl ON cl.cliente_dni = g.CLIENTE_DNI
+	JOIN Pteradata.Sucursal s ON g.SUCURSAL_NOMBRE = s.sucursal_nombre
+	JOIN Pteradata.Caja c ON c.caja_numero = g.CAJA_NUMERO AND c.sucursal_nombre = g.SUCURSAL_NOMBRE
+	JOIN Pteradata.Empleado e ON e.empleado_dni = g.EMPLEADO_DNI
+	JOIN Pteradata.EmpleadoPorCaja ec ON ec.legajo_empleado = e.legajo_empleado AND c.id_caja = ec.id_caja
+
 END
-
-
+SELECT TICKET_NUMERO, EMPLEADO_DNI, CAJA_NUMERO FROM gd_esquema.Maestra WHERE TICKET_NUMERO = 1351318358
+SELECT * FROM Pteradata.EmpleadoPorCaja
 /*
 Este procedimiento tiene como objetivo migrar los diferentes tickets que hay
 hacia la tabla Ticket.

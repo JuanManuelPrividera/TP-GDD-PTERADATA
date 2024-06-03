@@ -85,6 +85,16 @@ BEGIN
         FOREIGN KEY(cuit) REFERENCES Pteradata.Supermercado(cuit)
     );
 
+	CREATE TABLE Pteradata.Caja(
+        id_caja INT PRIMARY KEY IDENTITY(1,1),
+        sucursal_nombre NVARCHAR(255),
+        id_caja_tipo INT,
+        caja_numero DECIMAL(18,0),
+
+        FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
+        FOREIGN KEY(id_caja_tipo) REFERENCES Pteradata.CajaTipo(id_caja_tipo),
+    );
+
 	CREATE TABLE Pteradata.Empleado(
         legajo_empleado INT PRIMARY KEY IDENTITY(100000,1),
         sucursal_nombre NVARCHAR(255),
@@ -96,18 +106,16 @@ BEGIN
 
         FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre)
     );
+	-- Esto es porque los emplados estan en varias cajas
+	-- y en las cajas hay varios empleados entonces muchos a muchos
+	CREATE TABLE Pteradata.EmpleadoPorCaja(
+		id_empleado_caja INT PRIMARY KEY IDENTITY(1,1),
+		legajo_empleado INT,
+		id_caja INT,
 
-    CREATE TABLE Pteradata.Caja(
-        id_caja INT PRIMARY KEY IDENTITY(1,1),
-        sucursal_nombre NVARCHAR(255),
-        id_caja_tipo INT,
-        legajo_empleado INT,
-        caja_numero DECIMAL(18,0),
-
-        FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
-        FOREIGN KEY(id_caja_tipo) REFERENCES Pteradata.CajaTipo(id_caja_tipo),
-        FOREIGN KEY(legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
-    );
+		FOREIGN KEY(id_caja) REFERENCES Pteradata.Caja(id_caja),
+		FOREIGN KEY(legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
+	);
 
 	CREATE TABLE Pteradata.ContactoEmpleado(
         id_contacto_empleado INT PRIMARY KEY IDENTITY(1,1),
@@ -135,9 +143,8 @@ BEGIN
     CREATE TABLE Pteradata.Ticket(
         id_ticket INT PRIMARY KEY IDENTITY(1,1),
         id_cliente INT,
-        id_caja INT,
+		id_empleado_caja INT,
         sucursal_nombre NVARCHAR(255),
-        legajo_empleado INT,
         ticket_numero DECIMAL(18,0),
         ticket_total DECIMAL (18,2),
         ticket_total_envio DECIMAL(18,2),
@@ -148,8 +155,7 @@ BEGIN
 
         FOREIGN KEY (id_cliente) REFERENCES Pteradata.Cliente (id_cliente),
         FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal (sucursal_nombre),
-        FOREIGN KEY (id_caja) REFERENCES Pteradata.Caja(id_caja),
-        FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado),
+        FOREIGN KEY (id_empleado_caja) REFERENCES Pteradata.EmpleadoPorCaja(id_empleado_caja),
     );
 
 	CREATE TABLE Pteradata.TipoDeComprobante(
