@@ -1,4 +1,4 @@
-﻿CREATE SCHEMA Pteradata
+﻿--CREATE SCHEMA Pteradata
 
 GO
 
@@ -63,7 +63,7 @@ para relacionar las direcciones con la localidad en la que se encuentra.
 
 GO
 -- Este ya está
-CREATE PROCEDURE migrarClientes AS
+CREATE PROCEDURE migrarCliente AS
 BEGIN
 	INSERT INTO Pteradata.Cliente(id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento,cliente_dni)
 	SELECT DISTINCT d.id_direccion, CLIENTE_NOMBRE, CLIENTE_APELLIDO, CLIENTE_FECHA_REGISTRO,CLIENTE_TELEFONO,CLIENTE_MAIL,CLIENTE_FECHA_NACIMIENTO,CLIENTE_DNI
@@ -159,9 +159,9 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de los contactos.
 GO
 
 -- Este ya está
-CREATE PROCEDURE migrarCajas AS
+CREATE PROCEDURE migrarCaja AS
 BEGIN
-	INSERT INTO Pteradata.Caja(sucursal_nombre,id_caja_tipo,legajo_empleado, caja_numero)
+	INSERT INTO Pteradata.Caja(sucursal_nombre, id_caja_tipo, legajo_empleado, caja_numero)
 	SELECT DISTINCT  sc.sucursal_nombre, ct.id_caja_tipo, e.legajo_empleado, m.CAJA_NUMERO
 	FROM gd_esquema.Maestra m 
 	JOIN Pteradata.Sucursal sc ON m.SUCURSAL_NOMBRE = sc.sucursal_nombre
@@ -169,6 +169,7 @@ BEGIN
 	JOIN Pteradata.Empleado e ON e.sucursal_nombre = m.SUCURSAL_NOMBRE
 	WHERE m.CAJA_NUMERO IS NOT NULL
 END
+
 /*
 Este procedimiento tiene como objetivo migrar los datos de las disitntas cajas 
 hacia la tabla Caja.
@@ -177,7 +178,7 @@ y JOINS para relacionar las cajas con el tipo de caja que son y la sucursal a la
 */
 GO
 -- Este ya está
-CREATE PROCEDURE migrarReglas AS
+CREATE PROCEDURE migrarRegla AS
 BEGIN
 	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_Descuento,
 	regla_cant_aplicable_regla,regla_cant_max_prod,regla_Descripcion,regla_Descuento_aplicable_prod)
@@ -194,7 +195,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de las reglas.
 */
 GO
 -- Este ya está
-CREATE PROCEDURE migrarDescuentos AS
+CREATE PROCEDURE migrarDescuento AS
 BEGIN
 	INSERT INTO Pteradata.Descuento(Descuento_Codigo,Descuento_Descripcion, Descuento_fecha_inicio, 
 	Descuento_fecha_fin, Descuento_porcentaje_desc, Descuento_tope)
@@ -223,7 +224,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de marcas.
 */
 GO
 -- Este ya está
-CREATE PROCEDURE migrarCategorias AS
+CREATE PROCEDURE migrarCategoria AS
 BEGIN
 	INSERT INTO Pteradata.Categoria(producto_categoria)
 	SELECT DISTINCT PRODUCTO_CATEGORIA
@@ -251,7 +252,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de subcategorias.
 GO
 
 -- Este ya está
-CREATE PROCEDURE migrarProductos AS
+CREATE PROCEDURE migrarProducto AS
 BEGIN
 	INSERT INTO Pteradata.Producto(Producto_Nombre,Producto_Descripcion)
 	SELECT DISTINCT PRODUCTO_NOMBRE, PRODUCTO_DESCRIPCION
@@ -289,9 +290,18 @@ END
 Este procedimiento tiene como objetivo unir los productos con la marca que los provee
 mediante la utilzacion de los JOINS hacia la tabla Marca y Producto.
 */
+-- Este ya está
+GO
+CREATE PROCEDURE migrarPrecio AS
+BEGIN
+	INSERT INTO Pteradata.Precio(id_marca, producto_nombre)
+	SELECT DISTINCT pm.id_marca, M.PRODUCTO_NOMBRE FROM gd_esquema.Maestra M
+	JOIN Pteradata.ProductoPorMarca pm ON pm.producto_nombre = M.PRODUCTO_NOMBRE
+END
+
 GO
 -- Este ya está
-CREATE PROCEDURE migrarTarjetas AS
+CREATE PROCEDURE migrarTarjeta AS
 BEGIN
 	INSERT INTO Pteradata.Tarjeta(nro_tarjeta, tarjeta_fecha_vencimiento)
 	SELECT DISTINCT PAGO_TARJETA_NRO, PAGO_TARJETA_FECHA_VENC FROM gd_esquema.Maestra
@@ -354,7 +364,7 @@ Este procedimiento tiene como objetivo guardar el Descuento aplicado sobre un pr
 */
 GO
 -- Este ya está
-CREATE PROCEDURE migrarEnvioEstados AS
+CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(envio_estado)
 	SELECT DISTINCT ENVIO_ESTADO FROM gd_esquema.Maestra
@@ -392,11 +402,13 @@ BEGIN
 					TICKET_TOTAL_DESCUENTO_APLICADO_MP,TICKET_FECHA_HORA,TICKET_SUBTOTAL_PRODUCTOS
 	FROM gd_esquema.Maestra g 
 	JOIN Pteradata.Sucursal s ON g.SUCURSAL_NOMBRE = s.sucursal_nombre
-	JOIN Pteradata.CajaTipo ct ON g.CAJA_TIPO = ct.caja_tipo
-	JOIN Pteradata.Empleado e ON g.EMPLEADO_DNI = e.empleado_dni 
 	JOIN Pteradata.Caja c ON g.CAJA_NUMERO = c.caja_numero AND s.sucursal_nombre = c.sucursal_nombre
+	JOIN Pteradata.Empleado e ON g.EMPLEADO_DNI = e.empleado_dni 
+	JOIN Pteradata.CajaTipo ct ON g.CAJA_TIPO = ct.caja_tipo
 	JOIN Pteradata.Cliente cl ON cl.cliente_dni = g.CLIENTE_DNI
 END
+
+
 /*
 Este procedimiento tiene como objetivo migrar los diferentes tickets que hay
 hacia la tabla Ticket.
@@ -421,48 +433,49 @@ hacia la tabla MedioPago.
 Utilizamos los JOIN hacia las tablas MedioPago y TipoPagoMedioPago
 para relacionar cada pago con el tipo y medio de pago al que pertenecen.
 */
-CREATE PROCEDURE migrarDetallePago AS
-BEGIN
+GO
+--CREATE PROCEDURE migrarDetallePago AS
+--BEGIN
 
-WITH DetalleCliente AS (
-    SELECT DISTINCT
-        g.PAGO_IMPORTE AS importe,
-        g.PAGO_FECHA AS fecha,
-        g.PAGO_TARJETA_NRO AS tarjeta,
-		g.PAGO_TARJETA_CUOTAS as cuotas,
-        g.PAGO_TIPO_MEDIO_PAGO AS tipo_medio,
-		g.PAGO_MEDIO_PAGO as medio_pago
-    FROM
-        gd_esquema.Maestra g
-    JOIN
-        Pteradata.Ticket t ON t.ticket_num = g.TICKET_NUMERO
-    WHERE
-        g.PAGO_IMPORTE IS NOT NULL 
-        AND g.TICKET_NUMERO IS NOT NULL 
-        AND g.PAGO_FECHA IS NOT NULL 
-        AND g.PAGO_MEDIO_PAGO IS NOT NULL
-)
-	INSERT INTO Pteradata.DetallePago(nro_tarjeta,cant_cuotas,ID_Pago)
-	SELECT
-		(CASE 
-			WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
-			ELSE tr.nro_tarjeta
-		END) AS TARJETA,
-		dc.cuotas,
-		p.ID_Pago
+--WITH DetalleCliente AS (
+--    SELECT DISTINCT
+--        g.PAGO_IMPORTE AS importe,
+--        g.PAGO_FECHA AS fecha,
+--        g.PAGO_TARJETA_NRO AS tarjeta,
+--		g.PAGO_TARJETA_CUOTAS as cuotas,
+--        g.PAGO_TIPO_MEDIO_PAGO AS tipo_medio,
+--		g.PAGO_MEDIO_PAGO as medio_pago
+--    FROM
+--        gd_esquema.Maestra g
+--    JOIN
+--        Pteradata.Ticket t ON t.ticket_numero = g.TICKET_NUMERO
+--    WHERE
+--        g.PAGO_IMPORTE IS NOT NULL 
+--        AND g.TICKET_NUMERO IS NOT NULL 
+--        AND g.PAGO_FECHA IS NOT NULL 
+--        AND g.PAGO_MEDIO_PAGO IS NOT NULL
+--)
+--	INSERT INTO Pteradata.DetallePago(nro_tarjeta,cant_cuotas,ID_Pago)
+--	SELECT
+--		(CASE 
+--			WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
+--			ELSE tr.nro_tarjeta
+--		END) AS TARJETA,
+--		dc.cuotas,
+--		p.ID_Pago
 
-	FROM DetalleCliente dc
-	JOIN gd_esquema.Maestra g ON g.TICKET_NUMERO = dc.ticket
-	LEFT JOIN Pteradata.Tarjeta tr ON tr.nro_tarjeta = dc.tarjeta
-	JOIN Pteradata.TipoPagoMedioPago tmp ON tmp.pago_tipo_medio_pago = dc.tipo_medio
-	JOIN Pteradata.MedioPago mp ON mp.pago_medio_pago =dc.medio_pago AND mp.id_pago_tipo_medio_pago = tmp.id_pago_tipo_medio_pago
-	JOIN Pteradata.Pago p ON dc.importe = p.pago_importe AND dc.fecha = p.pago_fecha AND p.id_medio_pago = mp.id_medio_pago
-	WHERE g.CLIENTE_DNI IS NOT NULL 
-AND (CASE 
-        WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
-        ELSE tr.nro_tarjeta
-    END) is not null;
-END
+--	FROM DetalleCliente dc
+--	JOIN gd_esquema.Maestra g ON g.TICKET_NUMERO = dc.
+--	LEFT JOIN Pteradata.Tarjeta tr ON tr.nro_tarjeta = dc.tarjeta
+--	JOIN Pteradata.TipoPagoMedioPago tmp ON tmp.pago_tipo_medio_pago = dc.tipo_medio
+--	JOIN Pteradata.MedioPago mp ON mp.pago_medio_pago =dc.medio_pago AND mp.id_pago_tipo_medio_pago = tmp.id_pago_tipo_medio_pago
+--	JOIN Pteradata.Pago p ON dc.importe = p.pago_importe AND dc.fecha = p.pago_fecha AND p.id_medio_pago = mp.id_medio_pago
+--	WHERE g.CLIENTE_DNI IS NOT NULL 
+--AND (CASE 
+--        WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
+--        ELSE tr.nro_tarjeta
+--    END) is not null;
+--END
 
 GO
 /*
@@ -500,7 +513,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de medios de pago.
 GO
 
 -- Este ya esta pero le faltan los tickets tambien
-CREATE PROCEDURE migrarTipoComprobantes AS
+CREATE PROCEDURE migrarTipoComprobante AS
 BEGIN
 	INSERT INTO Pteradata.TipoDeComprobante(Tipo_Comprobante_Descripcion, id_ticket)
 	SELECT DISTINCT TICKET_TIPO_COMPROBANTE, t.id_ticket FROM gd_esquema.Maestra M
@@ -512,27 +525,28 @@ que existen en la tabla maestra hacia la tabla TipoDeComprobante
 */
 GO
 
-CREATE PROCEDURE migrarTicketPorProductos AS
+-- ?
+CREATE PROCEDURE migrarTicketPorProducto AS
 BEGIN
-	INSERT INTO Pteradata.TicketPorProductos(id_ticket,id_ProdXMarca, prod_nombre,marca_nombre,ticket_det_cantidad,ticket_det_precio,ticket_det_total)
-	SELECT distinct t.id_ticket,pm.id_ProdXMarca,pm.prod_nombre,pm.marca_nombre,TICKET_DET_CANTIDAD,TICKET_DET_PRECIO,TICKET_DET_TOTAL
+	INSERT INTO Pteradata.TicketPorProducto(id_ticket,id_Producto_Marca, ticket_det_cantidad, ticket_det_precio, ticket_det_total)
+	SELECT DISTINCT t.id_ticket, pm.id_producto_marca, TICKET_DET_CANTIDAD,TICKET_DET_PRECIO,TICKET_DET_TOTAL
 	FROM gd_esquema.Maestra g
-	JOIN Pteradata.Ticket t ON g.TICKET_NUMERO = t.ticket_num
-	JOIN Pteradata.ProductoPorMarca pm ON g.PRODUCTO_MARCA = pm.marca_nombre AND g.PRODUCTO_NOMBRE=pm.prod_nombre and pm.prod_precio = g.PRODUCTO_PRECIO
+	JOIN Pteradata.Ticket t ON g.TICKET_NUMERO = t.ticket_numero
+	JOIN Pteradata.ProductoPorMarca pm ON g.PRODUCTO_MARCA = pm.id_marca AND g.PRODUCTO_NOMBRE=pm.producto_nombre
 END
 /*
 Este procedimiento tiene como objetivo migrar los diferentes items que tiene un ticket
 hacia la tabla TicketPorProductos.
 */
-GO
+--GO
 
-CREATE PROCEDURE migrarPagoXTicket AS
-BEGIN
-	INSERT INTO Pteradata.PagoPorTicket(ID_Pago, id_ticket)
-	SELECT p.ID_Pago, t.id_ticket
-	FROM gd_esquema.Maestra m JOIN Pteradata.Pago p ON m.PAGO_FECHA = p.pago_fecha AND m.PAGO_IMPORTE = p.pago_importe
-	JOIN Pteradata.Ticket t ON m.TICKET_NUMERO = t.ticket_num
-END
+--CREATE PROCEDURE migrarPagoXTicket AS
+--BEGIN
+--	INSERT INTO Pteradata.PagoPorTicket(ID_Pago, id_ticket)
+--	SELECT p.ID_Pago, t.id_ticket
+--	FROM gd_esquema.Maestra m JOIN Pteradata.Pago p ON m.PAGO_FECHA = p.pago_fecha AND m.PAGO_IMPORTE = p.pago_importe
+--	JOIN Pteradata.Ticket t ON m.TICKET_NUMERO = t.ticket_num
+--END
 /*
 Este procedimiento tiene como objetivo migrar el o los pagos que se realizaron a un ticket
 hacia la tabla PagoPorTicket.
@@ -541,7 +555,7 @@ GO
 
 CREATE PROCEDURE migrarDescuentoXPago AS
 BEGIN
-	INSERT INTO Pteradata.DescuetoPorPago(id_pago,Descuento_Codigo,Descuento_aplicado)
+	INSERT INTO Pteradata.DescuentoPorPago(id_pago,Descuento_Codigo,Descuento_aplicado)
 	SELECT p.ID_Pago, d.Descuento_Codigo, PAGO_DESCUENTO_APLICADO
 	FROM gd_esquema.Maestra m
 	JOIN Pteradata.Descuento d ON m.DESCUENTO_CODIGO = d.Descuento_Codigo
@@ -558,37 +572,37 @@ GO
 CREATE PROCEDURE migrarTodo AS
 BEGIN
 	EXEC migrarTipoPagoMedioPago;
-	EXEC migrarTipoComprobantes;
-	EXEC migrarEnvioEstados;
+	EXEC migrarTipoComprobante;
+	EXEC migrarEnvioEstado;
 	EXEC migrarProvincia;
 	EXEC migrarLocalidad;
 	EXEC migrarDireccion;
-	EXEC migrarClientes;
+	EXEC migrarCliente;
 	EXEC migrarSupermercado;
 	EXEC migrarSucursal; 
 	EXEC migrarCajaTipo;
-	EXEC migrarCajas;
 	EXEC migrarContactoEmpleado;
-	EXEC migrarEmpleados;
-	EXEC migrarReglas;
-	EXEC migrarDescuentos;
-	EXEC migrarMarcas;
-	EXEC migrarCategorias;
-	EXEC migrarSubCategorias;
-	EXEC migrarProductos;
+	EXEC migrarEmpleados;	
+	EXEC migrarCaja;
+	EXEC migrarRegla;
+	EXEC migrarDescuento;
+	EXEC migrarMarca;
+	EXEC migrarCategoria;
+	EXEC migrarSubCategoria;
+	EXEC migrarProducto;
 	EXEC migrarProductoPorCategoria;
 	EXEC migrarProductoPorMarca;
-	EXEC migrarTarjetas;
+	EXEC migrarTarjeta;
 	EXEC migrarMedioPago;
 	EXEC migrarPago;
-	EXEC migrarDetallePago;
+	--EXEC migrarDetallePago;
 	EXEC migrarPromocion;
 	EXEC migrarPromocionPorProducto;
 	EXEC migrarPomocionAplicada;
 	EXEC migrarEnvio;
 	EXEC migrarTicket;
-	EXEC migrarTicketPorProductos;
-	EXEC migrarPagoXTicket;
+	EXEC migrarTicketPorProducto;
+	--EXEC migrarPagoXTicket;
 	EXEC migrarDescuentoXPago
 END 
 
@@ -597,4 +611,4 @@ Este procedimiento tiene como objetivo realizar la ejecucion de todas las migrac
 */
 GO
 
---EXEC migrarTodo;
+EXEC migrarTodo;
