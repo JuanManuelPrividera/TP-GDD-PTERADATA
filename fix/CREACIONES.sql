@@ -1,5 +1,5 @@
 CREATE SCHEMA Pteradata
-
+--DROP PROCEDURE crearTodasLasTablas
 GO
 
 CREATE PROCEDURE crearTodasLasTablas AS 
@@ -25,15 +25,6 @@ BEGIN
     CREATE TABLE Pteradata.EnvioEstado(
         id_envio_estado INT PRIMARY KEY IDENTITY(1,1),
         envio_estado NVARCHAR(255)
-    );
-
-    CREATE TABLE Pteradata.ContactoEmpleado(
-        id_contacto_empleado INT PRIMARY KEY IDENTITY(1,1),
-	    legajo_empleado INT,
-        empleado_email NVARCHAR(255),
-        empleado_telefono DECIMAL(18,0),
-
-	FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
     );
 
     create table Pteradata.Marca(
@@ -94,6 +85,18 @@ BEGIN
         FOREIGN KEY(cuit) REFERENCES Pteradata.Supermercado(cuit)
     );
 
+	CREATE TABLE Pteradata.Empleado(
+        legajo_empleado INT PRIMARY KEY IDENTITY(100000,1),
+        sucursal_nombre NVARCHAR(255),
+        empleado_dni DECIMAL(18,0),
+        empleado_nombre NVARCHAR(255),
+        empleado_apellido NVARCHAR(255),
+        empleado_fecha_nacimiento DATETIME,
+        empleado_fecha_registro DATETIME,
+
+        FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre)
+    );
+
     CREATE TABLE Pteradata.Caja(
         id_caja INT PRIMARY KEY IDENTITY(1,1),
         sucursal_nombre NVARCHAR(255),
@@ -106,19 +109,13 @@ BEGIN
         FOREIGN KEY(legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
     );
 
-    CREATE TABLE Pteradata.Empleado(
-        legajo_empleado INT PRIMARY KEY IDENTITY(100000,1),
-        sucursal_nombre NVARCHAR(255),
-        -- Por que el empleado tiene la caja??
-        --id_caja INT,
-        empleado_dni DECIMAL(18,0),
-        empleado_nombre NVARCHAR(255),
-        empleado_apellido NVARCHAR(255),
-        empleado_fecha_nacimiento DATETIME,
-        empleado_fecha_registro DATETIME,
+	CREATE TABLE Pteradata.ContactoEmpleado(
+        id_contacto_empleado INT PRIMARY KEY IDENTITY(1,1),
+	    legajo_empleado INT,
+        empleado_email NVARCHAR(255),
+        empleado_telefono DECIMAL(18,0),
 
-        FOREIGN KEY(sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre)
-        --FOREIGN KEY (id_caja) REFERENCES Pteradata.Caja(id_caja)
+		FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
     );
 
     CREATE TABLE Pteradata.Cliente(
@@ -184,7 +181,8 @@ BEGIN
     );
 
     CREATE TABLE Pteradata.SubCategoria(
-        producto_sub_categoria NVARCHAR(255) PRIMARY KEY,
+        id_producto_sub_categoria INT PRIMARY KEY IDENTITY(1,1),
+		producto_sub_categoria NVARCHAR(255),
         producto_categoria NVARCHAR(255),
 
         FOREIGN KEY (producto_categoria) REFERENCES Pteradata.Categoria(producto_categoria)
