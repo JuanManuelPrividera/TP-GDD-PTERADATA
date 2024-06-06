@@ -132,7 +132,7 @@ BEGIN
         FOREIGN KEY(id_direccion) REFERENCES Pteradata.Direccion(id_direccion)
     );
 
--- Hay tickets que no tienen clientes
+	-- Hay tickets que no tienen clientes
     CREATE TABLE Pteradata.Ticket(
         id_ticket INT PRIMARY KEY IDENTITY(1,1),
 		id_caja INT,
