@@ -27,7 +27,7 @@ BEGIN
         envio_estado NVARCHAR(255)
     );
 
-    create table Pteradata.Marca(
+    CREATE TABLE Pteradata.Marca(
         id_marca INT PRIMARY KEY IDENTITY(1,1),
         Descripcion_marca NVARCHAR(255)
     );
@@ -132,11 +132,17 @@ BEGIN
         FOREIGN KEY(id_direccion) REFERENCES Pteradata.Direccion(id_direccion)
     );
 
+	CREATE TABLE Pteradata.TipoDeComprobante(
+        id_tipo_comprobante INT PRIMARY KEY IDENTITY(1,1),
+        Tipo_Comprobante_Descripcion NVARCHAR(255),
+    );
+
 	-- Hay tickets que no tienen clientes
     CREATE TABLE Pteradata.Ticket(
         id_ticket INT PRIMARY KEY IDENTITY(1,1),
 		id_caja INT,
 		legajo_empleado INT,
+		id_tipo_comprobante INT,
         sucursal_nombre NVARCHAR(255),
         ticket_numero DECIMAL(18,0),
         ticket_total DECIMAL (18,2),
@@ -146,19 +152,11 @@ BEGIN
         ticket_fecha_hora DATETIME,
         ticket_subtotal_productos DECIMAL(18,2),
 
+		FOREIGN KEY (id_tipo_comprobante) REFERENCES Pteradata.TipoDeComprobante(id_tipo_comprobante),
         FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal (sucursal_nombre),
         FOREIGN KEY (id_caja) REFERENCES Pteradata.Caja(id_caja),
 		FOREIGN KEY (legajo_empleado) REFERENCES Pteradata.Empleado(legajo_empleado)
 
-    );
-
--- Si el ticket tiene cliente no tiene tipo y viceversa
-	CREATE TABLE Pteradata.TipoDeComprobante(
-        id_tipo_comprobante INT PRIMARY KEY IDENTITY(1,1),
-        Tipo_Comprobante_Descripcion NVARCHAR(255),
-        id_ticket INT,
-
-        FOREIGN KEY (id_ticket) REFERENCES Pteradata.Ticket(id_ticket)
     );
 
     CREATE TABLE Pteradata.Envio(
@@ -190,29 +188,30 @@ BEGIN
     );
 
     CREATE TABLE Pteradata.Producto(
-        Producto_Nombre NVARCHAR(255) PRIMARY KEY,
-        Producto_Descripcion NVARCHAR(255),
+		id_producto INT PRIMARY KEY IDENTITY(1,1),
+        Producto_Nombre NVARCHAR(255),
+        Producto_Descripcion NVARCHAR(255)
     );
 
     CREATE TABLE Pteradata.ProductoPorMarca(
 		id_producto_marca INT PRIMARY KEY IDENTITY(1,1),
         id_marca INT,
-        producto_nombre NVARCHAR(255),
+        id_producto INT,
 		precio DECIMAL(18,2),
 
-        FOREIGN KEY (producto_nombre) REFERENCES Pteradata.Producto(producto_nombre),
+        FOREIGN KEY (id_producto) REFERENCES Pteradata.Producto(id_producto),
         FOREIGN KEY (id_marca) REFERENCES Pteradata.Marca(id_marca)
     );
 
 
     CREATE TABLE Pteradata.ProductoPorCategoria(
         producto_categoria NVARCHAR(255),
-        producto_nombre NVARCHAR(255),
+        id_producto INT,
 
-        PRIMARY KEY (producto_nombre,producto_categoria),
+        PRIMARY KEY (id_producto,producto_categoria),
 
         FOREIGN KEY (producto_categoria) REFERENCES Pteradata.Categoria(producto_categoria),
-        FOREIGN KEY (producto_nombre) REFERENCES Pteradata.Producto(producto_nombre)
+        FOREIGN KEY (id_producto) REFERENCES Pteradata.Producto(id_producto)
     );
 
     CREATE TABLE Pteradata.Promocion(
@@ -227,10 +226,10 @@ BEGIN
 
     CREATE TABLE Pteradata.PromocionPorProducto(
         ID_Promocion_Producto INT PRIMARY KEY IDENTITY(1, 1),
-        producto_nombre NVARCHAR(255),
+        id_producto_marca INT,
         Promocion_Codigo decimal(18,0),
 
-        FOREIGN KEY (producto_nombre) REFERENCES Pteradata.Producto(producto_nombre),
+        FOREIGN KEY (id_producto_marca) REFERENCES Pteradata.ProductoPorMarca(id_producto_marca),
         FOREIGN KEY (Promocion_Codigo) REFERENCES Pteradata.Promocion(Promocion_Codigo)
     );
 
@@ -274,9 +273,6 @@ BEGIN
         tarjeta_fecha_vencimiento DATETIME
     );
 
-	--SELECT DISTINCT TICKET_NUMERO,CLIENTE_DNI, PAGO_MEDIO_PAGO, PAGO_TIPO_MEDIO_PAGO, TICKET_TOTAL_ENVIO, ENVIO_HORA_FIN, PAGO_TARJETA_NRO  FROM gd_esquema.Maestra
-	--ORDER BY TICKET_NUMERO
-	--SELECT * FROM gd_esquema.Maestra WHERE TICKET_NUMERO = 1351318314
 
 
     CREATE TABLE Pteradata.Pago(
@@ -294,8 +290,8 @@ BEGIN
         id_pago_detalle INT PRIMARY KEY IDENTITY(1,1),
         nro_tarjeta NVARCHAR(50),
         ID_Pago INT,
-        cant_cuotas DECIMAL(18,0),
 		id_cliente INT,
+        cant_cuotas DECIMAL(18,0),
         
 	    FOREIGN KEY(ID_Pago) REFERENCES Pteradata.Pago(ID_Pago),
         FOREIGN KEY (nro_tarjeta) REFERENCES Pteradata.Tarjeta(nro_tarjeta),
