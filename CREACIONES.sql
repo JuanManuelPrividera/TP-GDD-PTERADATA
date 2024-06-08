@@ -3,10 +3,6 @@
 GO
 
 CREATE PROCEDURE crearTodasLasTablas AS 
-/*
-Con este procedure creamos todas las tablas con los datos necesarios 
-segun el modelo de datos que creamos
-*/
 BEGIN
     CREATE TABLE Pteradata.Descuento(
         Descuento_Codigo DECIMAL (18,0) PRIMARY KEY,
