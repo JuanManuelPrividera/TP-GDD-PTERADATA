@@ -544,22 +544,19 @@ Este procedimiento tiene como objetivo migrar los Descuentos aplicados a los pag
 hacia la tabla DescuetoPorPago
 */
 GO
-/*
+
 CREATE PROCEDURE migrarTodo AS
 BEGIN
-	EXEC migrarTipoPagoMedioPago;
-	EXEC migrarTipoComprobante;
-	EXEC migrarEnvioEstado;
 	EXEC migrarProvincia;
 	EXEC migrarLocalidad;
 	EXEC migrarDireccion;
 	EXEC migrarCliente;
 	EXEC migrarSupermercado;
-	EXEC migrarSucursal; 
+	EXEC migrarSucursal;
 	EXEC migrarCajaTipo;
-	EXEC migrarContactoEmpleado;
-	EXEC migrarEmpleados;	
 	EXEC migrarCaja;
+	EXEC migrarEmpleados; 
+	EXEC migrarContactoEmpleado;
 	EXEC migrarRegla;
 	EXEC migrarDescuento;
 	EXEC migrarMarca;
@@ -567,17 +564,21 @@ BEGIN
 	EXEC migrarSubCategoria;
 	EXEC migrarProducto;
 	EXEC migrarProductoPorCategoria;
-	EXEC migrarProductoPorMarca;
 	EXEC migrarTarjeta;
+	EXEC migrarPromocion;
+	EXEC migrarProductoPorMarca;
+	EXEC migrarPromocionPorProducto;
+	EXEC migrarEnvioEstado;
+	EXEC migrarTicket;
+	EXEC migrarTipoPagoMedioPago;
+	EXEC migrarEnvio;
 	EXEC migrarMedioPago;
 	EXEC migrarPago;
 	EXEC migrarDetallePago;
-	EXEC migrarPromocion;
-	EXEC migrarPromocionPorProducto;
-	EXEC migrarPomocionAplicada;
-	EXEC migrarEnvio;
-	EXEC migrarTicket;
+	EXEC migrarTipoComprobante;
 	EXEC migrarTicketPorProducto;
-	EXEC migrarDescuentoXPago
+	EXEC migrarPomocionAplicada;
+	EXEC migrarDescuentoPorPago
 END 
-*/
+
+EXEC migrarTodo
