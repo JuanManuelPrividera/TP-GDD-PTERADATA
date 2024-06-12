@@ -2,6 +2,7 @@
 CREATE TABLE Pteradata.BI_Tiempo(
 	Id_Tiempo INT PRIMARY KEY,
 	AÑO INT,
+	CUATRIMESTRE INT,
 	MES INT
 );
 
@@ -69,15 +70,45 @@ CREATE TABLE Pteradata.BI_Turno(
 	turno_hora_fin TIME
 );
 
+CREATE TABLE Pteradata.BI_TicketPorProducto(
+	id_ticket INT,
+	id_producto_marca INT,
+	ticket_det_cantidad INT
+
+);
+CREATE TABLE Pteradata.BI_RangoEtario(
+	id_rango_etario INT PRIMARY KEY IDENTITY(1,1),
+	edad_minima INT,
+	edad_maxima INT,
+	descripcion NVARCHAR(255)
+);
+CREATE TABLE Pteradata.BI_Empleado(
+	legajo_empleado INT,
+	sucursal_nombre NVARCHAR(255),
+	id_rango_etario INT,
+	caja_tipo NVARCHAR(255),
+
+	FOREIGN KEY(id_rango_etario) REFERENCES Pteradata.BI_RangoEtario(id_rango_etario)
+);
 
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
 GO
 CREATE PROCEDURE migrarBI_Tiempo AS
 BEGIN
-	INSERT INTO Pteradata.BI_Tiempo(Id_Tiempo,AÑO,MES)
-	SELECT DISTINCT (YEAR(pago_fecha)*100+MONTH(pago_fecha) ),YEAR(pago_fecha),MONTH(pago_fecha)
-	FROM Pteradata.Pago
-	ORDER BY MONTH(pago_fecha)
+	INSERT INTO Pteradata.BI_Tiempo(Id_Tiempo,AÑO,CUATRIMESTRE,MES)
+	SELECT DISTINCT (YEAR(pago_fecha)*100+MONTH(pago_fecha)),
+    YEAR(pago_fecha),
+    CASE 
+        WHEN MONTH(pago_fecha) BETWEEN 1 AND 4 THEN 1
+        WHEN MONTH(pago_fecha) BETWEEN 4 AND 8 THEN 2
+        WHEN MONTH(pago_fecha) BETWEEN 8 AND 12 THEN 3
+ 
+    END,
+    MONTH(pago_fecha)
+FROM 
+    Pteradata.Pago
+ORDER BY 
+    MONTH(pago_fecha);
 END
 -- A ESTA MIGRACION LE HACE FALTA AGREGAR UNIONS CON EL RESTO DE FECHAS Q HAY A MEDIDA QUE LAS NECESITEMOS
 GO
@@ -89,8 +120,6 @@ BEGIN
 							   JOIN Pteradata.Provincia p ON l.id_provincia = p.id_provincia
 							 
 END
-
-GO
 CREATE PROCEDURE migrarBI_Sucursal AS
 BEGIN
 	INSERT INTO Pteradata.BI_Sucursal(Sucursal_Nombre,CUIT,Id_Direccion)
@@ -132,6 +161,29 @@ BEGIN
 	INSERT INTO Pteradata.BI_Turno (turno_hora_inicio,turno_hora_fin)
 	VALUES('08:00:00','12:00:00'), ('12:00:00','16:00:00'),('16:00:00','20:00:00')
 END
+GO
+CREATE PROCEDURE migrarBI_TicketPorProducto AS
+BEGIN
+	INSERT INTO Pteradata.BI_TicketPorProducto(id_ticket, id_producto_marca, ticket_det_cantidad)
+	SELECT id_ticket, id_producto_marca, ticket_det_cantidad FROM Pteradata.TicketPorProducto
+END
+GO
+CREATE PROCEDURE migrarBI_RangoEstario AS
+BEGIN
+	INSERT INTO Pteradata.BI_RangoEtario(edad_minima,edad_maxima,descripcion)
+	VALUES (0,25,'Menores de 25'),(26,35,'Mayores de 25 y menores de 35'),(36,50, 'Mayores de 35 y menores de 50'),(51,150,'Mayores de 50')
+END
+GO
+
+CREATE PROCEDURE migrarBI_Empleado AS
+BEGIN
+	INSERT INTO Pteradata.BI_Empleado(legajo_empleado,sucursal_nombre,id_rango_etario, caja_tipo)
+	SELECT e.legajo_empleado, e.sucursal_nombre, r.id_rango_etario, ct.caja_tipo 
+	FROM Pteradata.Empleado e
+		JOIN Pteradata.BI_RangoEtario r ON DATEDIFF(year, e.empleado_fecha_nacimiento, GETDATE()) BETWEEN r.edad_minima AND r.edad_maxima
+		JOIN Pteradata.Caja c ON c.id_caja = e.ID_Caja
+		JOIN Pteradata.CajaTipo ct ON ct.id_caja_tipo = c.id_caja_tipo
+END
 
 
 -------------------------------------------------CREACION DE VISTAS--------------------------------------------------------
@@ -152,15 +204,40 @@ GROUP BY u.Localidad, YEAR(t.ticket_fecha_hora),MONTH(t.ticket_fecha_hora)
 ORDER BY año,mes
 
 -- 2 --
+-- 5,5,5 mmmmm...
 /*
 Cantidad unidades promedio. 
-Cantidad promedio de artículos que se venden
-en función de los tickets según el turno para cada cuatrimestre de cada año. Se
-obtiene sumando la cantidad de artículos de todos los tickets correspondientes
-sobre la cantidad de tickets. Si un producto tiene más de una unidad en un ticket,
-para el indicador se consideran todas las unidades
+Cantidad promedio de artículos que se venden en función de los tickets según 
+el turno para cada cuatrimestre de cada año. Se obtiene sumando la cantidad de 
+artículos de todos los tickets correspondientes sobre la cantidad de tickets. 
+Si un producto tiene más de una unidad en un ticket, para el indicador se 
+consideran todas las unidades
+
 */
 CREATE VIEW CantidadUnidadesPromedio AS
+SELECT SUM(tp.ticket_det_cantidad)/COUNT(tp.id_ticket) AS Promedio_Productos, tu.id_turno 
+FROM Pteradata.BI_TicketPorProducto tp
+	JOIN Pteradata.BI_Ticket t ON t.id_ticket = tp.id_ticket
+	JOIN Pteradata.BI_Turno tu ON CAST(t.ticket_fecha_hora AS TIME) BETWEEN tu.turno_hora_inicio AND turno_hora_fin
+GROUP BY tu.id_turno
+
+-- 3 --
+-- Un ticket es una venta? 
+/*
+Porcentaje anual de ventas registradas por rango etario del empleado según el
+tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
+correspondientes sobre el total de ventas anual.
+*/
+CREATE VIEW PorcentajeAnualVentas AS
+SELECT COUNT(t.id_ticket) AS Cantidad_Tickets, YEAR(t.ticket_fecha_hora) AS Año, ti.CUATRIMESTRE AS Cuatrimestre, r.descripcion AS Rango_Etario, e.caja_tipo AS Tipo_De_Caja
+FROM Pteradata.BI_Ticket t
+	JOIN Pteradata.BI_Sucursal s ON s.Sucursal_Nombre = t.sucursal_nombre
+	JOIN Pteradata.BI_Empleado e ON e.sucursal_nombre = s.Sucursal_Nombre
+	JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = e.id_rango_etario
+	JOIN Pteradata.BI_Tiempo ti ON ti.MES = MONTH(t.ticket_fecha_hora) AND ti.AÑO = YEAR(t.ticket_fecha_hora)
+GROUP BY YEAR(t.ticket_fecha_hora), ti.CUATRIMESTRE,r.descripcion, e.caja_tipo
+ORDER BY CUATRIMESTRE, YEAR(t.ticket_fecha_hora)
+
 
 -- 4
 -- Cantidad de ventas registradas por turno para cada localidad según el mes de
