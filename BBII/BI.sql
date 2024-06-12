@@ -132,6 +132,8 @@ BEGIN
 	INSERT INTO Pteradata.BI_Turno (turno_hora_inicio,turno_hora_fin)
 	VALUES('08:00:00','12:00:00'), ('12:00:00','16:00:00'),('16:00:00','20:00:00')
 END
+
+
 -------------------------------------------------CREACION DE VISTAS--------------------------------------------------------
 -- 1 --
 -- No estoy seguro de si ticket_total es el total total...
@@ -160,16 +162,34 @@ para el indicador se consideran todas las unidades
 */
 CREATE VIEW CantidadUnidadesPromedio AS
 
+-- 4
+-- Cantidad de ventas registradas por turno para cada localidad según el mes de
+-- cada año.
+CREATE VIEW CantidadDeVentasPorTurnoPorLocalidadPorMes AS
+SELECT COUNT(DISTINCT id_ticket) CantidadDeVentas, tu.id_turno Turno, u.Localidad Localidad, MONTH(t.ticket_fecha_hora) Mes FROM Pteradata.BI_Ticket t
+JOIN Pteradata.BI_Turno tu on CONVERT(TIME, t.ticket_fecha_hora) BETWEEN tu.turno_hora_inicio AND tu.turno_hora_fin
+JOIN Pteradata.BI_Sucursal s on t.sucursal_nombre = s.Sucursal_Nombre
+JOIN Pteradata.BI_Ubicacion u on s.Id_Direccion = u.id_direccion
+GROUP BY u.Localidad, MONTH(t.ticket_fecha_hora), tu.id_turno
+ORDER BY MONTH(t.ticket_fecha_hora)
 
+-- 5
+-- Porcentaje de descuento aplicados en función del total de los tickets según el
+-- mes de cada año.
+CREATE VIEW PorcentajeDeDescuento
+SELECT (1 - SUM(ticket_total) / SUM(ticket_subtotal_productos)) * 100 DescuentoAplicado, MONTH(ticket_fecha_hora) Mes 
+FROM Pteradata.BI_Ticket
+GROUP BY MONTH(ticket_fecha_hora)
+ORDER BY 2
 
+-- 6
+-- Las tres categorías de productos con mayor descuento aplicado a partir de
+-- promociones para cada cuatrimestre de cada año.
+--SELECT (1 - SUM(ticket_total) / SUM(ticket_subtotal_productos)) * 100 DtoAplicado, Producto_Categoria FROM Pteradata.Ticket
+--JOIN Pteradata.TicketPorProducto tpp
 
-
-
-
-
-
-
-
+--SELECT * FROM Pteradata.Ticket
+--SELECT ticket_subtotal_productos - ticket_total - ticket_total_envio - ticket_total_Descuento_aplicado - ticket_det_Descuento_medio_pago FROM Pteradata.Ticket
 
 
 
