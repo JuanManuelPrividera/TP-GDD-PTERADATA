@@ -1,30 +1,29 @@
+----------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------CREACION DE TABLAS -----------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE Pteradata.BI_Tiempo(
-	Id_Tiempo INT PRIMARY KEY,
-	AÑO INT,
-	CUATRIMESTRE INT,
-	MES INT
+	id_tiempo INT PRIMARY KEY IDENTITY(1,1),
+	año INT,
+	cuatrimestre INT,
+	mes INT
 );
-	
+
 CREATE TABLE Pteradata.BI_Ubicacion(
 	id_direccion INT PRIMARY KEY,
 	Direccion NVARCHAR(255),
 	Localidad NVARCHAR(255),
 	Provincia NVARCHAR (255)
 );
-
 CREATE TABLE Pteradata.BI_Sucursal(
 	Sucursal_Nombre NVARCHAR(255) PRIMARY KEY,
 	CUIT NVARCHAR(255),
 	Id_Direccion INT,
 	FOREIGN KEY(id_direccion) REFERENCES Pteradata.BI_Ubicacion(id_direccion)
 );
-
 CREATE TABLE Pteradata.BI_MedioPago (
     id_medio_pago INT PRIMARY KEY,
     Medio_Pago NVARCHAR(255) UNIQUE
 );
-
 CREATE TABLE Pteradata.BI_Ticket(
     id_ticket INT PRIMARY KEY,
     sucursal_nombre NVARCHAR(255),
@@ -37,7 +36,6 @@ CREATE TABLE Pteradata.BI_Ticket(
     ticket_subtotal_productos DECIMAL(18,2),
     FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
 );
-
 CREATE TABLE Pteradata.BI_Pago(
     ID_Pago INT PRIMARY KEY,
     id_medio_pago INT,
@@ -48,8 +46,12 @@ CREATE TABLE Pteradata.BI_Pago(
     FOREIGN KEY(id_medio_pago) REFERENCES Pteradata.BI_MedioPago(id_medio_pago),
 	FOREIGN KEY(id_ticket) REFERENCES Pteradata.BI_Ticket(id_ticket)
 );
-
-
+CREATE TABLE Pteradata.BI_RangoEtario(
+	id_rango_etario INT PRIMARY KEY IDENTITY(1,1),
+	edad_minima INT,
+	edad_maxima INT,
+	descripcion NVARCHAR(255)
+);
 CREATE TABLE Pteradata.BI_Cliente(
     id_cliente INT PRIMARY KEY, 
     id_direccion INT,
@@ -61,26 +63,20 @@ CREATE TABLE Pteradata.BI_Cliente(
     cliente_fecha_nacimiento DATE,
 	edad INT,
     cliente_dni DECIMAL(18,0),
-    FOREIGN KEY(id_direccion) REFERENCES Pteradata.BI_Ubicacion(id_direccion)
+	id_rango_etario INT, 
+    FOREIGN KEY(id_direccion) REFERENCES Pteradata.BI_Ubicacion(id_direccion),
+	FOREIGN KEY(id_rango_etario) REFERENCES Pteradata.BI_RangoEtario(id_rango_etario)
 );
-
 CREATE TABLE Pteradata.BI_Turno(
 	id_turno INT PRIMARY KEY IDENTITY(1,1),
 	turno_hora_inicio TIME,
 	turno_hora_fin TIME
 );
-
 CREATE TABLE Pteradata.BI_TicketPorProducto(
 	id_ticket INT,
 	id_producto_marca INT,
 	ticket_det_cantidad INT
 
-);
-CREATE TABLE Pteradata.BI_RangoEtario(
-	id_rango_etario INT PRIMARY KEY IDENTITY(1,1),
-	edad_minima INT,
-	edad_maxima INT,
-	descripcion NVARCHAR(255)
 );
 CREATE TABLE Pteradata.BI_Empleado(
 	legajo_empleado INT,
@@ -90,7 +86,6 @@ CREATE TABLE Pteradata.BI_Empleado(
 
 	FOREIGN KEY(id_rango_etario) REFERENCES Pteradata.BI_RangoEtario(id_rango_etario)
 );
-
 CREATE TABLE Pteradata.BI_Envio(
 	id_envio INT PRIMARY KEY,
 	id_cliente INT,
@@ -109,7 +104,7 @@ CREATE TABLE Pteradata.BI_Envio(
 ------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
-GO
+/*  vvvvv PARA MI QUE ESTO ESTA MAL vvvvv
 CREATE PROCEDURE migrarBI_Tiempo AS
 BEGIN
 	INSERT INTO Pteradata.BI_Tiempo(Id_Tiempo,AÑO,CUATRIMESTRE,MES)
@@ -119,7 +114,6 @@ BEGIN
         WHEN MONTH(pago_fecha) BETWEEN 1 AND 4 THEN 1
         WHEN MONTH(pago_fecha) BETWEEN 4 AND 8 THEN 2
         WHEN MONTH(pago_fecha) BETWEEN 8 AND 12 THEN 3
- 
     END,
     MONTH(pago_fecha)
 FROM 
@@ -127,7 +121,43 @@ FROM
 ORDER BY 
     MONTH(pago_fecha);
 END
--- A ESTA MIGRACION LE HACE FALTA AGREGAR UNIONS CON EL RESTO DE FECHAS Q HAY A MEDIDA QUE LAS NECESITEMOS
+*/
+GO
+CREATE PROCEDURE migrarBI_Tiempo AS
+BEGIN 
+	INSERT INTO Pteradata.BI_Tiempo(año, mes, cuatrimestre)
+	SELECT DISTINCT YEAR(pago_fecha), MONTH(pago_fecha),
+		CASE 
+			WHEN MONTH(pago_fecha) BETWEEN 1 AND 4  THEN 1
+			WHEN MONTH(pago_fecha) BETWEEN 5 AND 8  THEN 2
+			WHEN MONTH(pago_fecha) BETWEEN 9 AND 12 THEN 3
+		END 
+		FROM Pteradata.Pago
+	UNION 
+	SELECT DISTINCT YEAR(fecha_entregado), MONTH(fecha_entregado),
+		CASE 
+			WHEN MONTH(fecha_entregado) BETWEEN 1 AND 4  THEN 1
+			WHEN MONTH(fecha_entregado) BETWEEN 5 AND 8  THEN 2
+			WHEN MONTH(fecha_entregado) BETWEEN 9 AND 12 THEN 3
+		END
+		FROM Pteradata.Envio
+	UNION
+	SELECT DISTINCT YEAR(envio_fecha_programada), MONTH(envio_fecha_programada),
+		CASE 
+			WHEN MONTH(envio_fecha_programada) BETWEEN 1 AND 4  THEN 1
+			WHEN MONTH(envio_fecha_programada) BETWEEN 5 AND 8  THEN 2
+			WHEN MONTH(envio_fecha_programada) BETWEEN 9 AND 12 THEN 3
+		END
+		FROM Pteradata.Envio	
+	UNION 
+	SELECT DISTINCT YEAR(ticket_fecha_hora), MONTH(ticket_fecha_hora),
+		CASE 
+			WHEN MONTH(ticket_fecha_hora) BETWEEN 1 AND 4  THEN 1
+			WHEN MONTH(ticket_fecha_hora) BETWEEN 5 AND 8  THEN 2
+			WHEN MONTH(ticket_fecha_hora) BETWEEN 9 AND 12 THEN 3
+		END
+		FROM Pteradata.Ticket
+END
 GO
 CREATE PROCEDURE migrarBI_Ubicacion AS
 BEGIN
@@ -158,9 +188,6 @@ BEGIN
 	SELECT DISTINCT id_ticket,sucursal_nombre,ticket_numero,ticket_total,ticket_total_envio,ticket_total_Descuento_aplicado,ticket_fecha_hora,ticket_subtotal_productos
 	FROM Pteradata.Ticket
 END
-
-select * from Pteradata.Ticket
-
 GO
 CREATE PROCEDURE migrarBI_Pago AS
 BEGIN
@@ -169,12 +196,19 @@ BEGIN
 	FROM Pteradata.Pago
 END
 GO
+CREATE PROCEDURE migrarBI_RangoEstario AS
+BEGIN
+	INSERT INTO Pteradata.BI_RangoEtario(edad_minima,edad_maxima,descripcion)
+	VALUES (0,25,'Menores de 25'),(26,35,'Mayores de 25 y menores de 35'),(36,50, 'Mayores de 35 y menores de 50'),(51,150,'Mayores de 50')
+END
+GO
 CREATE PROCEDURE migrarBI_Cliente AS
 BEGIN
-	INSERT INTO Pteradata.BI_Cliente(id_cliente,id_direccion,cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento,edad,cliente_dni)
+	INSERT INTO Pteradata.BI_Cliente(id_cliente,id_direccion,cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento,edad,cliente_dni, id_rango_etario)
 	SELECT DISTINCT id_cliente,id_direccion,cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento, 
-			DATEDIFF(YEAR,cliente_fecha_nacimiento,GETDATE()) AS edad, cliente_dni
+			DATEDIFF(YEAR,cliente_fecha_nacimiento,GETDATE()) AS edad, cliente_dni, r.id_rango_etario
 	FROM Pteradata.Cliente
+		JOIN Pteradata.BI_RangoEtario r on r.edad_minima <= DATEDIFF(YEAR,cliente_fecha_nacimiento,GETDATE()) and r.edad_maxima >= DATEDIFF(YEAR,cliente_fecha_nacimiento,GETDATE()) 
 END
 GO
 CREATE PROCEDURE migrarBI_Turno AS
@@ -187,12 +221,6 @@ CREATE PROCEDURE migrarBI_TicketPorProducto AS
 BEGIN
 	INSERT INTO Pteradata.BI_TicketPorProducto(id_ticket, id_producto_marca, ticket_det_cantidad)
 	SELECT id_ticket, id_producto_marca, ticket_det_cantidad FROM Pteradata.TicketPorProducto
-END
-GO
-CREATE PROCEDURE migrarBI_RangoEstario AS
-BEGIN
-	INSERT INTO Pteradata.BI_RangoEtario(edad_minima,edad_maxima,descripcion)
-	VALUES (0,25,'Menores de 25'),(26,35,'Mayores de 25 y menores de 35'),(36,50, 'Mayores de 35 y menores de 50'),(51,150,'Mayores de 50')
 END
 GO
 CREATE PROCEDURE migrarBI_Empleado AS
@@ -223,15 +251,14 @@ BEGIN
 	EXEC migrarBI_MedioPago;
 	EXEC migrarBI_Ticket;
 	EXEC migrarBI_Pago;
+	EXEC migrarBI_RangoEstario;
 	EXEC migrarBI_Cliente;
 	EXEC migrarBI_Turno;
 	EXEC migrarBI_TicketPorProducto;
-	EXEC migrarBI_RangoEstario;
 	EXEC migrarBI_Empleado;
 	EXEC migrarBI_Envio;
 END
 --EXEC migrarTodoBI
-
 ------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------CREACION DE VISTAS------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -282,8 +309,8 @@ FROM Pteradata.BI_Ticket t
 	JOIN Pteradata.BI_Sucursal s ON s.Sucursal_Nombre = t.sucursal_nombre
 	JOIN Pteradata.BI_Empleado e ON e.sucursal_nombre = s.Sucursal_Nombre
 	JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = e.id_rango_etario
-	JOIN Pteradata.BI_Tiempo ti ON ti.MES = MONTH(t.ticket_fecha_hora) AND ti.AÑO = YEAR(t.ticket_fecha_hora)
-GROUP BY YEAR(t.ticket_fecha_hora), ti.CUATRIMESTRE,r.descripcion, e.caja_tipo
+	JOIN Pteradata.BI_Tiempo ti ON ti.mes = MONTH(t.ticket_fecha_hora) AND ti.año = YEAR(t.ticket_fecha_hora)
+GROUP BY YEAR(t.ticket_fecha_hora), ti.cuatrimestre,r.descripcion, e.caja_tipo
 ORDER BY CUATRIMESTRE, YEAR(t.ticket_fecha_hora)
 
 
@@ -321,16 +348,14 @@ ORDER BY 2
 
 
 
-
---7. Porcentaje de cumplimiento de envíos en los tiempos programados por sucursal por año/mes (desvío)
-
-drop table #TempEnviosCumplidosPorSucursal
-
+-----
+--7-- Porcentaje de cumplimiento de envíos en los tiempos programados por sucursal por año/mes (desvío)
+-----
 SELECT id_envio INTO #TempEnviosCumplidosPorSucursal
 	FROM Pteradata.BI_Envio e
 	WHERE e.envio_estado = 'Finalizado' AND CAST(e.fecha_entregado AS DATE) = CAST(e.envio_fecha_programada AS DATE)
 
-
+GO
 CREATE VIEW ProcentajeEnviosCumplidosPorSucursal AS
 SELECT COUNT(te.id_envio)*100 / COUNT(e.id_envio) AS ProcentajeDeCumplimiento
      FROM Pteradata.BI_Envio e
@@ -338,6 +363,26 @@ SELECT COUNT(te.id_envio)*100 / COUNT(e.id_envio) AS ProcentajeDeCumplimiento
 		JOIN Pteradata.BI_Ticket t on t.id_ticket = e.id_ticket 
 	 GROUP BY t.sucursal_nombre, YEAR(e.envio_fecha_programada), MONTH(e.envio_fecha_programada)	
 
+-----
+--8-- Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.-----
+GO
+CREATE VIEW CantEnviosPorRangoEtarioPorCuatri AS
+SELECT COUNT(e.id_envio) cant_envios, r.id_rango_etario, t.cuatrimestre 
+	FROM Pteradata.BI_Envio e
+		JOIN Pteradata.BI_Cliente c ON c.id_cliente = e.id_cliente
+		JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = c.id_rango_etario
+		JOIN Pteradata.BI_Tiempo t ON t.AÑO = YEAR(e.envio_fecha_programada) AND t.MES = MONTH(e.envio_fecha_programada)
+	GROUP BY r.id_rango_etario, t.cuatrimestre 
+
+-----
+--9-- Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+-----
+CREATE VIEW Top5LocalidadesConEnviosMasCaros AS
+SELECT TOP 5 u.localidad 
+	FROM Pteradata.BI_Cliente c
+		JOIN Pteradata.BI_Ubicacion u on u.id_direccion = c.id_direccion
+		JOIN Pteradata.BI_Envio e on e.id_cliente = c.id_cliente
+	order by e.envio_costo DESC
 
 
 
@@ -360,7 +405,7 @@ WITH PagosPorSucursal AS (
     JOIN 
         Pteradata.BI_MedioPago mp ON p.id_medio_pago = mp.id_medio_pago
     JOIN 
-        Pteradata.BI_Tiempo ti ON ti.Id_Tiempo = p.pago_fecha
+        Pteradata.BI_Tiempo ti ON ti.id_tiempo = p.pago_fecha
     WHERE 
         mp.Medio_Pago <> 'Efectivo'
     GROUP BY 

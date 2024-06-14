@@ -1,7 +1,5 @@
--- CREATE SCHEMA Pteradata
--- DROP PROCEDURE crearTodasLasTablas
+CREATE SCHEMA Pteradata
 GO
-
 CREATE PROCEDURE crearTodasLasTablas AS 
 BEGIN
     CREATE TABLE Pteradata.Descuento(

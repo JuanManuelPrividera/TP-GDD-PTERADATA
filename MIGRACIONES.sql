@@ -1,9 +1,4 @@
-﻿--CREATE SCHEMA Pteradata
-
-GO
-
-
-CREATE PROCEDURE migrarProvincia AS
+﻿CREATE PROCEDURE migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
 	SELECT DISTINCT SUPER_PROVINCIA FROM gd_esquema.Maestra
@@ -18,7 +13,7 @@ El objetivo de este procedimiento es migrar las distintas provincias existentes
 hacia la tabla Provincia. Utilizamos SELECT DISTINCT y UNION para asegurarnos e que se insterten provincias 
 únicas.
 */
-go
+GO
 
 
 CREATE PROCEDURE migrarLocalidad AS
@@ -584,5 +579,5 @@ BEGIN
 	EXEC migrarPomocionAplicada;
 	EXEC migrarDescuentoPorPago
 END 
-
+GO
 EXEC migrarTodo
