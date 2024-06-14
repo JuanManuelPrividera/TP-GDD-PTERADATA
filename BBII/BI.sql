@@ -5,7 +5,7 @@ CREATE TABLE Pteradata.BI_Tiempo(
 	CUATRIMESTRE INT,
 	MES INT
 );
-
+	
 CREATE TABLE Pteradata.BI_Ubicacion(
 	id_direccion INT PRIMARY KEY,
 	Direccion NVARCHAR(255),
@@ -35,7 +35,7 @@ CREATE TABLE Pteradata.BI_Ticket(
     ticket_det_Descuento_medio_pago DECIMAL(18,2),
     ticket_fecha_hora DATETIME,
     ticket_subtotal_productos DECIMAL(18,2),
-    FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal (sucursal_nombre),
+    FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
 );
 
 CREATE TABLE Pteradata.BI_Pago(
@@ -91,7 +91,24 @@ CREATE TABLE Pteradata.BI_Empleado(
 	FOREIGN KEY(id_rango_etario) REFERENCES Pteradata.BI_RangoEtario(id_rango_etario)
 );
 
+CREATE TABLE Pteradata.BI_Envio(
+	id_envio INT PRIMARY KEY,
+	id_cliente INT,
+	id_ticket INT,
+	envio_estado NVARCHAR(255),
+	envio_costo DECIMAL(18,2),
+	envio_fecha_programada DATETIME,
+	envio_hora_inicio DATETIME,
+	envio_hora_fin DATETIME,
+	fecha_entregado DATETIME,
+
+	FOREIGN KEY (id_cliente) REFERENCES Pteradata.BI_Cliente,
+	FOREIGN KEY (id_ticket) REFERENCES Pteradata.BI_Ticket
+);
+
+------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 GO
 CREATE PROCEDURE migrarBI_Tiempo AS
 BEGIN
@@ -120,6 +137,7 @@ BEGIN
 							   JOIN Pteradata.Provincia p ON l.id_provincia = p.id_provincia
 							 
 END
+GO
 CREATE PROCEDURE migrarBI_Sucursal AS
 BEGIN
 	INSERT INTO Pteradata.BI_Sucursal(Sucursal_Nombre,CUIT,Id_Direccion)
@@ -140,6 +158,9 @@ BEGIN
 	SELECT DISTINCT id_ticket,sucursal_nombre,ticket_numero,ticket_total,ticket_total_envio,ticket_total_Descuento_aplicado,ticket_fecha_hora,ticket_subtotal_productos
 	FROM Pteradata.Ticket
 END
+
+select * from Pteradata.Ticket
+
 GO
 CREATE PROCEDURE migrarBI_Pago AS
 BEGIN
@@ -174,7 +195,6 @@ BEGIN
 	VALUES (0,25,'Menores de 25'),(26,35,'Mayores de 25 y menores de 35'),(36,50, 'Mayores de 35 y menores de 50'),(51,150,'Mayores de 50')
 END
 GO
-
 CREATE PROCEDURE migrarBI_Empleado AS
 BEGIN
 	INSERT INTO Pteradata.BI_Empleado(legajo_empleado,sucursal_nombre,id_rango_etario, caja_tipo)
@@ -184,9 +204,37 @@ BEGIN
 		JOIN Pteradata.Caja c ON c.id_caja = e.ID_Caja
 		JOIN Pteradata.CajaTipo ct ON ct.id_caja_tipo = c.id_caja_tipo
 END
+GO
+CREATE PROCEDURE migrarBI_Envio AS
+BEGIN
+	INSERT INTO Pteradata.BI_Envio(id_envio, id_cliente, id_ticket, envio_estado, envio_costo, envio_fecha_programada,
+	envio_hora_inicio, envio_hora_fin, fecha_entregado)
+	SELECT e.id_envio, e.id_cliente, e.id_ticket, ee.envio_estado, e.envio_costo, e.envio_fecha_programada,
+					e.envio_hora_inicio, e.envio_hora_fin, e.fecha_entregado
+		FROM Pteradata.Envio e
+		JOIN Pteradata.EnvioEstado ee on ee.id_envio_estado = e.id_envio_estado
+END
+GO
+CREATE PROCEDURE migrarTodoBI AS
+BEGIN 
+	EXEC migrarBI_Tiempo;
+	EXEC migrarBI_Ubicacion;	
+	EXEC migrarBI_Sucursal;
+	EXEC migrarBI_MedioPago;
+	EXEC migrarBI_Ticket;
+	EXEC migrarBI_Pago;
+	EXEC migrarBI_Cliente;
+	EXEC migrarBI_Turno;
+	EXEC migrarBI_TicketPorProducto;
+	EXEC migrarBI_RangoEstario;
+	EXEC migrarBI_Empleado;
+	EXEC migrarBI_Envio;
+END
+--EXEC migrarTodoBI
 
-
--------------------------------------------------CREACION DE VISTAS--------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------CREACION DE VISTAS------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
 -- 1 --
 -- No estoy seguro de si ticket_total es el total total...
 -- Estan todas las sucursales en la mimsa localidad ? 
@@ -253,7 +301,7 @@ ORDER BY MONTH(t.ticket_fecha_hora)
 -- 5
 -- Porcentaje de descuento aplicados en función del total de los tickets según el
 -- mes de cada año.
-CREATE VIEW PorcentajeDeDescuento
+CREATE VIEW PorcentajeDeDescuento AS
 SELECT (1 - SUM(ticket_total) / SUM(ticket_subtotal_productos)) * 100 DescuentoAplicado, MONTH(ticket_fecha_hora) Mes 
 FROM Pteradata.BI_Ticket
 GROUP BY MONTH(ticket_fecha_hora)
@@ -270,6 +318,25 @@ ORDER BY 2
 
 
 
+
+
+
+
+--7. Porcentaje de cumplimiento de envíos en los tiempos programados por sucursal por año/mes (desvío)
+
+drop table #TempEnviosCumplidosPorSucursal
+
+SELECT id_envio INTO #TempEnviosCumplidosPorSucursal
+	FROM Pteradata.BI_Envio e
+	WHERE e.envio_estado = 'Finalizado' AND CAST(e.fecha_entregado AS DATE) = CAST(e.envio_fecha_programada AS DATE)
+
+
+CREATE VIEW ProcentajeEnviosCumplidosPorSucursal AS
+SELECT COUNT(te.id_envio)*100 / COUNT(e.id_envio) AS ProcentajeDeCumplimiento
+     FROM Pteradata.BI_Envio e
+		JOIN #TempEnviosCumplidosPorSucursal te on te.id_envio = e.id_envio
+		JOIN Pteradata.BI_Ticket t on t.id_ticket = e.id_ticket 
+	 GROUP BY t.sucursal_nombre, YEAR(e.envio_fecha_programada), MONTH(e.envio_fecha_programada)	
 
 
 

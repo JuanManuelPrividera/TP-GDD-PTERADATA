@@ -343,8 +343,12 @@ GO
 CREATE PROCEDURE migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(envio_estado)
-	SELECT DISTINCT ENVIO_ESTADO FROM gd_esquema.Maestra
-	WHERE ENVIO_ESTADO IS NOT NULL 
+	SELECT DISTINCT
+		CASE
+			WHEN ENVIO_ESTADO = 'Finalizado' THEN 'Finalizado'
+			WHEN ENVIO_ESTADO IS NULL THEN 'En proceso' 
+		END envio_estado
+	FROM gd_esquema.Maestra
 END
 /*
 Este procedimiento tiene como objetivo migrar los diferentes estados que puede tener un envio

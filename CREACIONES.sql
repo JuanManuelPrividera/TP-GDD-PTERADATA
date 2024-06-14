@@ -310,5 +310,3 @@ END
 GO
 
 EXEC crearTodasLasTablas
-
-GO
