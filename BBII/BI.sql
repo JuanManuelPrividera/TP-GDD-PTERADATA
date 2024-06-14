@@ -100,7 +100,24 @@ CREATE TABLE Pteradata.BI_Envio(
 	FOREIGN KEY (id_cliente) REFERENCES Pteradata.BI_Cliente,
 	FOREIGN KEY (id_ticket) REFERENCES Pteradata.BI_Ticket
 );
-
+CREATE TABLE Pteradata.BI_Producto(
+	id_producto INT PRIMARY KEY, 
+	nombre NVARCHAR(255),
+	descripcion NVARCHAR(255)
+);
+CREATE TABLE Pteradata.BI_ProductoPorCategoria(
+	id_producto INT,
+	producto_categoria NVARCHAR(255),
+	PRIMARY KEY(id_producto, producto_categoria),
+	FOREIGN KEY (id_producto) REFERENCES Pteradata.BI_Producto(id_producto)
+);
+CREATE TABLE Pteradata.BI_PromocionAplicada(
+	id_promocion_aplicada INT PRIMARY KEY,
+	promocion_dto_aplicado DECIMAL(18,2),
+	id_producto INT,
+	fecha DATETIME,
+	FOREIGN KEY (id_producto) REFERENCES Pteradata.BI_Producto(id_producto)
+);
 ------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -243,6 +260,31 @@ BEGIN
 		JOIN Pteradata.EnvioEstado ee on ee.id_envio_estado = e.id_envio_estado
 END
 GO
+CREATE PROCEDURE migrarBI_Producto AS
+BEGIN
+	INSERT INTO Pteradata.BI_Producto(id_producto, nombre, descripcion)
+	SELECT id_producto, Producto_Nombre, Producto_Descripcion
+		FROM Pteradata.Producto
+END
+GO
+CREATE PROCEDURE migrarBI_ProductoPorCategoria AS
+BEGIN
+	INSERT INTO Pteradata.BI_ProductoPorCategoria(id_producto, producto_categoria)
+	SELECT DISTINCT p.id_producto, ppc.producto_categoria
+		FROM Pteradata.BI_Producto p
+			JOIN Pteradata.ProductoPorCategoria ppc on ppc.id_producto = p.id_producto
+END
+GO
+CREATE PROCEDURE migrarBI_PromocionAplicada AS
+BEGIN 
+	INSERT INTO Pteradata.BI_PromocionAplicada(id_promocion_aplicada, promocion_dto_aplicado, id_producto, fecha)
+	SELECT p.id_promocion_aplicada, tpp.ticket_det_total - p.Promocion_aplicada_dto, ppm.id_producto, t.ticket_fecha_hora
+		FROM Pteradata.PromocionAplicada p
+			JOIN Pteradata.TicketPorProducto tpp ON tpp.id_ticket_producto = p.id_ticket_producto
+			JOIN Pteradata.ProductoPorMarca ppm ON ppm.id_producto_marca = tpp.id_Producto_Marca 
+			JOIN Pteradata.Ticket t on t.id_ticket = tpp.id_ticket
+END
+GO
 CREATE PROCEDURE migrarTodoBI AS
 BEGIN 
 	EXEC migrarBI_Tiempo;
@@ -257,6 +299,9 @@ BEGIN
 	EXEC migrarBI_TicketPorProducto;
 	EXEC migrarBI_Empleado;
 	EXEC migrarBI_Envio;
+	EXEC migrarBI_Producto;
+	EXEC migrarBI_ProductoPorCategoria;
+	EXEC migrarBI_PromocionAplicada;
 END
 --EXEC migrarTodoBI
 ------------------------------------------------------------------------------------------------------------------------
@@ -344,14 +389,18 @@ ORDER BY 2
 --SELECT ticket_subtotal_productos - ticket_total - ticket_total_envio - ticket_total_Descuento_aplicado - ticket_det_Descuento_medio_pago FROM Pteradata.Ticket
 
 
-
-
-
-
+----- tomo que PROMO_APLICADA_DESCUENTO es el precio del producto con el descuento aplicado 
+--6-- Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
 -----
+CREATE VIEW Top3CategoriasConMayorDescuentoPorCuatrimestre AS
+SELECT top 3 SUM(pa.promocion_dto_aplicado) TotalDescuentosAplicados, ppc.producto_categoria
+	FROM Pteradata.BI_PromocionAplicada pa
+		JOIN Pteradata.BI_ProductoPorCategoria ppc on ppc.id_producto = pa.id_producto
+		JOIN Pteradata.BI_Tiempo t on t.AÑO = YEAR(pa.fecha) AND t.MES = MONTH(pa.fecha)
+	GROUP BY ppc.producto_categoria, t.CUATRIMESTRE
 --7-- Porcentaje de cumplimiento de envíos en los tiempos programados por sucursal por año/mes (desvío)
 -----
-SELECT id_envio INTO #TempEnviosCumplidosPorSucursal
+SELECT id_envio INTO #TempEnviosCumplidos
 	FROM Pteradata.BI_Envio e
 	WHERE e.envio_estado = 'Finalizado' AND CAST(e.fecha_entregado AS DATE) = CAST(e.envio_fecha_programada AS DATE)
 
@@ -359,12 +408,12 @@ GO
 CREATE VIEW ProcentajeEnviosCumplidosPorSucursal AS
 SELECT COUNT(te.id_envio)*100 / COUNT(e.id_envio) AS ProcentajeDeCumplimiento
      FROM Pteradata.BI_Envio e
-		JOIN #TempEnviosCumplidosPorSucursal te on te.id_envio = e.id_envio
+		JOIN #TempEnviosCumplidos te on te.id_envio = e.id_envio
 		JOIN Pteradata.BI_Ticket t on t.id_ticket = e.id_ticket 
 	 GROUP BY t.sucursal_nombre, YEAR(e.envio_fecha_programada), MONTH(e.envio_fecha_programada)	
-
 -----
---8-- Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.-----
+--8-- Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
+-----
 GO
 CREATE VIEW CantEnviosPorRangoEtarioPorCuatri AS
 SELECT COUNT(e.id_envio) cant_envios, r.id_rango_etario, t.cuatrimestre 
@@ -373,7 +422,6 @@ SELECT COUNT(e.id_envio) cant_envios, r.id_rango_etario, t.cuatrimestre
 		JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = c.id_rango_etario
 		JOIN Pteradata.BI_Tiempo t ON t.AÑO = YEAR(e.envio_fecha_programada) AND t.MES = MONTH(e.envio_fecha_programada)
 	GROUP BY r.id_rango_etario, t.cuatrimestre 
-
 -----
 --9-- Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
 -----
