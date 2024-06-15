@@ -2,7 +2,7 @@
 ----------------------------------------CREACION DE TABLAS -----------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE Pteradata.BI_Tiempo(
-	id_tiempo INT PRIMARY KEY IDENTITY(1,1),
+	id_tiempo INT PRIMARY KEY,
 	año INT,
 	cuatrimestre INT,
 	mes INT
@@ -118,6 +118,26 @@ CREATE TABLE Pteradata.BI_PromocionAplicada(
 	fecha DATETIME,
 	FOREIGN KEY (id_producto) REFERENCES Pteradata.BI_Producto(id_producto)
 );
+
+CREATE TABLE Pteradata.BI_DetallePago (
+        id_pago_detalle INT PRIMARY KEY,
+        ID_Pago INT,
+		id_cliente INT,
+        cant_cuotas DECIMAL(18,0),
+        
+	    FOREIGN KEY(ID_Pago) REFERENCES Pteradata.BI_Pago(ID_Pago),
+		FOREIGN KEY (id_cliente) REFERENCES Pteradata.BI_Cliente(id_cliente)
+);
+CREATE TABLE Pteradata.BI_DescuentoPorPago(
+        ID_Pago INT,
+        Descuento_aplicado DECIMAL(18,2),
+
+        PRIMARY KEY (ID_Pago),
+
+        FOREIGN KEY(ID_Pago) REFERENCES Pteradata.BI_Pago(ID_Pago),
+);
+
+
 ------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------
@@ -142,8 +162,8 @@ END
 GO
 CREATE PROCEDURE migrarBI_Tiempo AS
 BEGIN 
-	INSERT INTO Pteradata.BI_Tiempo(año, mes, cuatrimestre)
-	SELECT DISTINCT YEAR(pago_fecha), MONTH(pago_fecha),
+	INSERT INTO Pteradata.BI_Tiempo(id_tiempo,año, mes, cuatrimestre)
+	SELECT DISTINCT (YEAR(pago_fecha)*100+MONTH(pago_fecha)),YEAR(pago_fecha), MONTH(pago_fecha),
 		CASE 
 			WHEN MONTH(pago_fecha) BETWEEN 1 AND 4  THEN 1
 			WHEN MONTH(pago_fecha) BETWEEN 5 AND 8  THEN 2
@@ -151,7 +171,7 @@ BEGIN
 		END 
 		FROM Pteradata.Pago
 	UNION 
-	SELECT DISTINCT YEAR(fecha_entregado), MONTH(fecha_entregado),
+	SELECT DISTINCT (YEAR(fecha_entregado)*100+MONTH(fecha_entregado)),YEAR(fecha_entregado), MONTH(fecha_entregado),
 		CASE 
 			WHEN MONTH(fecha_entregado) BETWEEN 1 AND 4  THEN 1
 			WHEN MONTH(fecha_entregado) BETWEEN 5 AND 8  THEN 2
@@ -159,7 +179,7 @@ BEGIN
 		END
 		FROM Pteradata.Envio
 	UNION
-	SELECT DISTINCT YEAR(envio_fecha_programada), MONTH(envio_fecha_programada),
+	SELECT DISTINCT (YEAR(envio_fecha_programada)*100+MONTH(envio_fecha_programada)),YEAR(envio_fecha_programada), MONTH(envio_fecha_programada),
 		CASE 
 			WHEN MONTH(envio_fecha_programada) BETWEEN 1 AND 4  THEN 1
 			WHEN MONTH(envio_fecha_programada) BETWEEN 5 AND 8  THEN 2
@@ -167,7 +187,7 @@ BEGIN
 		END
 		FROM Pteradata.Envio	
 	UNION 
-	SELECT DISTINCT YEAR(ticket_fecha_hora), MONTH(ticket_fecha_hora),
+	SELECT DISTINCT (YEAR(ticket_fecha_hora)*100+MONTH(ticket_fecha_hora)),YEAR(ticket_fecha_hora), MONTH(ticket_fecha_hora),
 		CASE 
 			WHEN MONTH(ticket_fecha_hora) BETWEEN 1 AND 4  THEN 1
 			WHEN MONTH(ticket_fecha_hora) BETWEEN 5 AND 8  THEN 2
@@ -285,6 +305,20 @@ BEGIN
 			JOIN Pteradata.Ticket t on t.id_ticket = tpp.id_ticket
 END
 GO
+CREATE PROCEDURE migrarBI_DetallePago AS
+BEGIN
+	INSERT INTO Pteradata.BI_DetallePago(id_pago_detalle,ID_Pago,id_cliente,cant_cuotas)
+	SELECT DISTINCT id_pago_detalle,ID_Pago,id_cliente,cant_cuotas
+	FROM Pteradata.DetallePago
+END
+GO
+CREATE PROCEDURE migrarBI_DtoxPago AS
+BEGIN
+	INSERT INTO Pteradata.BI_DescuentoPorPago(ID_Pago,Descuento_aplicado)
+	SELECT DISTINCT ID_Pago,Descuento_aplicado
+	FROM Pteradata.DescuentoPorPago
+END
+
 CREATE PROCEDURE migrarTodoBI AS
 BEGIN 
 	EXEC migrarBI_Tiempo;
@@ -302,6 +336,8 @@ BEGIN
 	EXEC migrarBI_Producto;
 	EXEC migrarBI_ProductoPorCategoria;
 	EXEC migrarBI_PromocionAplicada;
+	EXEC migrarBI_DetallePago;
+	EXEC migrarBI_DtoxPago;
 END
 --EXEC migrarTodoBI
 ------------------------------------------------------------------------------------------------------------------------
@@ -473,3 +509,20 @@ WHERE
 GO
 
 ---11---
+CREATE VIEW promedioImporteXRangoEtario AS
+	SELECT re.descripcion AS RangoEtario, dp.cant_cuotas,AVG(p.pago_importe/dp.cant_cuotas) AS PromedioImporteDeCuota
+	FROM Pteradata.BI_Cliente c 
+	JOIN Pteradata.BI_DetallePago dp ON dp.id_cliente = c.id_cliente
+	JOIN Pteradata.Pago p ON p.ID_Pago = dp.ID_Pago
+	JOIN Pteradata.BI_RangoEtario re ON re.id_rango_etario = c.id_rango_etario
+	GROUP BY re.descripcion, dp.cant_cuotas
+	ORDER BY re.descripcion
+GO
+--12--
+CREATE VIEW porcentajeDtoAplicadoMP AS
+	SELECT DISTINCT mp.Medio_Pago, tm.cuatrimestre, SUM(t.ticket_total_Descuento_aplicado)/SUM(t.ticket_total+t.ticket_total_Descuento_aplicado) * 100 AS porcentaje_dto
+	FROM Pteradata.BI_Ticket t 
+	JOIN Pteradata.BI_Pago p ON t.id_ticket = p.id_ticket
+	JOIN Pteradata.BI_MedioPago mp ON mp.id_medio_pago = p.id_medio_pago
+	JOIN Pteradata.BI_Tiempo tm ON p.pago_fecha = tm.id_tiempo
+	GROUP BY mp.Medio_Pago, tm.cuatrimestre
