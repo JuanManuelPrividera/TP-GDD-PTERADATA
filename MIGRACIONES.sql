@@ -436,7 +436,6 @@ Utilizamos los JOIN hacia las tablas MedioPago y TipoPagoMedioPago
 para relacionar cada pago con el tipo y medio de pago al que pertenecen.
 */
 GO
-
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN
 WITH DetalleCliente AS (
@@ -458,7 +457,7 @@ WITH DetalleCliente AS (
         AND g.PAGO_FECHA IS NOT NULL 
         AND g.PAGO_MEDIO_PAGO IS NOT NULL
 )
-INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
+--INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
 SELECT
     (CASE 
         WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
@@ -543,7 +542,6 @@ Este procedimiento tiene como objetivo migrar los Descuentos aplicados a los pag
 hacia la tabla DescuetoPorPago
 */
 GO
-
 CREATE PROCEDURE migrarTodo AS
 BEGIN
 	EXEC migrarProvincia;
