@@ -3,7 +3,7 @@
 ----------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE Pteradata.BI_Tiempo(
 	id_tiempo INT PRIMARY KEY,
-	año INT,
+	aÃ±o INT,
 	cuatrimestre INT,
 	mes INT
 );
@@ -34,7 +34,7 @@ CREATE TABLE Pteradata.BI_Ticket(
     ticket_det_Descuento_medio_pago DECIMAL(18,2),
     ticket_fecha_hora DATETIME,
     ticket_subtotal_productos DECIMAL(18,2),
-    FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre),
+    FOREIGN KEY (sucursal_nombre) REFERENCES Pteradata.Sucursal(sucursal_nombre)
 );
 CREATE TABLE Pteradata.BI_Pago(
     ID_Pago INT PRIMARY KEY,
@@ -127,7 +127,7 @@ CREATE TABLE Pteradata.BI_DescuentoPorPago(
         Descuento_aplicado DECIMAL(18,2),
 
         PRIMARY KEY (ID_Pago),
-        FOREIGN KEY(ID_Pago) REFERENCES Pteradata.BI_Pago(ID_Pago),
+        FOREIGN KEY(ID_Pago) REFERENCES Pteradata.BI_Pago(ID_Pago)
 );
 ------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------MIGRO DATOS--------------------------------------------------------------
@@ -135,7 +135,7 @@ CREATE TABLE Pteradata.BI_DescuentoPorPago(
 GO
 CREATE PROCEDURE migrarBI_Tiempo AS
 BEGIN 
-	INSERT INTO Pteradata.BI_Tiempo(id_tiempo,año, mes, cuatrimestre)
+	INSERT INTO Pteradata.BI_Tiempo(id_tiempo,aÃ±o, mes, cuatrimestre)
 	SELECT DISTINCT (YEAR(pago_fecha)*100+MONTH(pago_fecha)),YEAR(pago_fecha), MONTH(pago_fecha),
 		CASE 
 			WHEN MONTH(pago_fecha) BETWEEN 1 AND 4  THEN 1
@@ -322,26 +322,26 @@ EXEC migrarTodoBI
 -- No estoy seguro de si ticket_total es el total total...
 -- Estan todas las sucursales en la mimsa localidad ? 
 /*
-Valor promedio de las ventas (en $) según la
-localidad, año y mes. Se calcula en función de la sumatoria del importe de las
+Valor promedio de las ventas (en $) segÃºn la
+localidad, aÃ±o y mes. Se calcula en funciÃ³n de la sumatoria del importe de las
 ventas sobre el total de las mismas.
 */
 CREATE VIEW TicketPromedioMensual AS
-SELECT SUM(t.ticket_total)/COUNT(t.id_ticket) AS Promedio_Por_Localidad, YEAR(t.ticket_fecha_hora) AS año,MONTH(t.ticket_fecha_hora) AS mes,u.Localidad 
+SELECT SUM(t.ticket_total)/COUNT(t.id_ticket) AS Promedio_Por_Localidad, YEAR(t.ticket_fecha_hora) AS aÃ±o,MONTH(t.ticket_fecha_hora) AS mes,u.Localidad 
 FROM Pteradata.BI_Ticket t
 	JOIN Pteradata.BI_Sucursal s ON t.sucursal_nombre = s.Sucursal_Nombre
 	JOIN Pteradata.BI_Ubicacion u ON u.id_direccion = s.Id_Direccion
 GROUP BY u.Localidad, YEAR(t.ticket_fecha_hora),MONTH(t.ticket_fecha_hora)
-ORDER BY año,mes
+ORDER BY aÃ±o,mes
 
 -- 2 --
 -- 5,5,5 mmmmm...
 /*
 Cantidad unidades promedio. 
-Cantidad promedio de artículos que se venden en función de los tickets según 
-el turno para cada cuatrimestre de cada año. Se obtiene sumando la cantidad de 
-artículos de todos los tickets correspondientes sobre la cantidad de tickets. 
-Si un producto tiene más de una unidad en un ticket, para el indicador se 
+Cantidad promedio de artÃ­culos que se venden en funciÃ³n de los tickets segÃºn 
+el turno para cada cuatrimestre de cada aÃ±o. Se obtiene sumando la cantidad de 
+artÃ­culos de todos los tickets correspondientes sobre la cantidad de tickets. 
+Si un producto tiene mÃ¡s de una unidad en un ticket, para el indicador se 
 consideran todas las unidades
 
 */
@@ -355,23 +355,23 @@ GROUP BY tu.id_turno
 -- 3 --
 -- Un ticket es una venta? 
 /*
-Porcentaje anual de ventas registradas por rango etario del empleado según el
+Porcentaje anual de ventas registradas por rango etario del empleado segÃºn el
 tipo de caja para cada cuatrimestre. Se calcula tomando la cantidad de ventas
 correspondientes sobre el total de ventas anual.
 */
 CREATE VIEW PorcentajeAnualVentas AS
-SELECT COUNT(t.id_ticket) AS Cantidad_Tickets, YEAR(t.ticket_fecha_hora) AS Año, ti.CUATRIMESTRE AS Cuatrimestre, r.descripcion AS Rango_Etario, e.caja_tipo AS Tipo_De_Caja
+SELECT COUNT(t.id_ticket) AS Cantidad_Tickets, YEAR(t.ticket_fecha_hora) AS AÃ±o, ti.CUATRIMESTRE AS Cuatrimestre, r.descripcion AS Rango_Etario, e.caja_tipo AS Tipo_De_Caja
 FROM Pteradata.BI_Ticket t
 	JOIN Pteradata.BI_Sucursal s ON s.Sucursal_Nombre = t.sucursal_nombre
 	JOIN Pteradata.BI_Empleado e ON e.sucursal_nombre = s.Sucursal_Nombre
 	JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = e.id_rango_etario
-	JOIN Pteradata.BI_Tiempo ti ON ti.mes = MONTH(t.ticket_fecha_hora) AND ti.año = YEAR(t.ticket_fecha_hora)
+	JOIN Pteradata.BI_Tiempo ti ON ti.mes = MONTH(t.ticket_fecha_hora) AND ti.aÃ±o = YEAR(t.ticket_fecha_hora)
 GROUP BY YEAR(t.ticket_fecha_hora), ti.cuatrimestre,r.descripcion, e.caja_tipo
 ORDER BY CUATRIMESTRE, YEAR(t.ticket_fecha_hora)
 
 -- 4
--- Cantidad de ventas registradas por turno para cada localidad según el mes de
--- cada año.
+-- Cantidad de ventas registradas por turno para cada localidad segÃºn el mes de
+-- cada aÃ±o.
 CREATE VIEW CantidadDeVentasPorTurnoPorLocalidadPorMes AS
 SELECT COUNT(DISTINCT id_ticket) CantidadDeVentas, tu.id_turno Turno, u.Localidad Localidad, MONTH(t.ticket_fecha_hora) Mes FROM Pteradata.BI_Ticket t
 JOIN Pteradata.BI_Turno tu on CONVERT(TIME, t.ticket_fecha_hora) BETWEEN tu.turno_hora_inicio AND tu.turno_hora_fin
@@ -381,7 +381,7 @@ GROUP BY u.Localidad, MONTH(t.ticket_fecha_hora), tu.id_turno
 ORDER BY MONTH(t.ticket_fecha_hora)
 
 -- 5
--- Porcentaje de descuento aplicados en función del total de los tickets según el mes de cada año.
+-- Porcentaje de descuento aplicados en funciÃ³n del total de los tickets segÃºn el mes de cada aÃ±o.
 CREATE VIEW PorcentajeDeDescuento AS
 SELECT (1 - SUM(ticket_total) / SUM(ticket_subtotal_productos)) * 100 DescuentoAplicado, MONTH(ticket_fecha_hora) Mes 
 FROM Pteradata.BI_Ticket
@@ -389,16 +389,16 @@ GROUP BY MONTH(ticket_fecha_hora)
 ORDER BY 2
 
 ----- tomo que PROMO_APLICADA_DESCUENTO es el precio del producto con el descuento aplicado 
---6-- Las tres categorías de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada año.
+--6-- Las tres categorÃ­as de productos con mayor descuento aplicado a partir de promociones para cada cuatrimestre de cada aÃ±o.
 -----
 
 CREATE VIEW Top3CategoriasConMayorDescuentoPorCuatrimestre AS
 SELECT top 3 SUM(pa.promocion_dto_aplicado) TotalDescuentosAplicados, ppc.producto_categoria
 	FROM Pteradata.BI_PromocionAplicada pa
 		JOIN Pteradata.BI_ProductoPorCategoria ppc on ppc.id_producto = pa.id_producto
-		JOIN Pteradata.BI_Tiempo t on t.AÑO = YEAR(pa.fecha) AND t.MES = MONTH(pa.fecha)
+		JOIN Pteradata.BI_Tiempo t on t.AÃ‘O = YEAR(pa.fecha) AND t.MES = MONTH(pa.fecha)
 	GROUP BY ppc.producto_categoria, t.CUATRIMESTRE
---7-- Porcentaje de cumplimiento de envíos en los tiempos programados por sucursal por año/mes (desvío)
+--7-- Porcentaje de cumplimiento de envÃ­os en los tiempos programados por sucursal por aÃ±o/mes (desvÃ­o)
 -----
 SELECT id_envio INTO #TempEnviosCumplidos
 	FROM Pteradata.BI_Envio e
@@ -412,7 +412,7 @@ SELECT DISTINCT COUNT(te.id_envio)*100 / COUNT(e.id_envio), t.sucursal_nombre AS
 		JOIN Pteradata.BI_Ticket t on t.id_ticket = e.id_ticket 
 	 GROUP BY t.sucursal_nombre, YEAR(e.envio_fecha_programada), MONTH(e.envio_fecha_programada)	
 -----
---8-- Cantidad de envíos por rango etario de clientes para cada cuatrimestre de cada año.
+--8-- Cantidad de envÃ­os por rango etario de clientes para cada cuatrimestre de cada aÃ±o.
 -----
 GO
 CREATE VIEW CantEnviosPorRangoEtarioPorCuatri AS
@@ -420,10 +420,10 @@ SELECT COUNT(e.id_envio) cant_envios, r.id_rango_etario, t.cuatrimestre
 	FROM Pteradata.BI_Envio e
 		JOIN Pteradata.BI_Cliente c ON c.id_cliente = e.id_cliente
 		JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = c.id_rango_etario
-		JOIN Pteradata.BI_Tiempo t ON t.AÑO = YEAR(e.envio_fecha_programada) AND t.MES = MONTH(e.envio_fecha_programada)
+		JOIN Pteradata.BI_Tiempo t ON t.AÃ‘O = YEAR(e.envio_fecha_programada) AND t.MES = MONTH(e.envio_fecha_programada)
 	GROUP BY r.id_rango_etario, t.cuatrimestre 
 -----
---9-- Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+--9-- Las 5 localidades (tomando la localidad del cliente) con mayor costo de envÃ­o.
 -----
 CREATE VIEW Top5LocalidadesConEnviosMasCaros AS
 SELECT TOP 5 u.localidad 
@@ -434,16 +434,16 @@ SELECT TOP 5 u.localidad
 
 
 -- 10 -- 
--- Las 3 sucursales con el mayor importe de pagos en cuotas, según el medio de pago, mes y año. 
+-- Las 3 sucursales con el mayor importe de pagos en cuotas, segÃºn el medio de pago, mes y aÃ±o. 
 -- Se calcula sumando los importes totales de todas las ventas en cuotas.
 CREATE VIEW Top3SucursalesXImportePago AS
-SELECT TOP 3 t.sucursal_nombre, ti.año, ti.mes
+SELECT TOP 3 t.sucursal_nombre, ti.aÃ±o, ti.mes
 	FROM Pteradata.BI_Ticket t
 		right JOIN Pteradata.BI_Pago p ON p.id_ticket = t.id_ticket
-		JOIN Pteradata.BI_Tiempo ti ON ti.año = YEAR(p.pago_fecha) AND ti.mes = MONTH(p.pago_fecha) 
+		JOIN Pteradata.BI_Tiempo ti ON ti.aÃ±o = YEAR(p.pago_fecha) AND ti.mes = MONTH(p.pago_fecha) 
 		JOIN Pteradata.BI_DetallePago dp ON dp.ID_Pago = p.ID_Pago
 	WHERE dp.cant_cuotas > 1
-	GROUP BY t.sucursal_nombre, p.id_medio_pago, ti.año, ti.mes
+	GROUP BY t.sucursal_nombre, p.id_medio_pago, ti.aÃ±o, ti.mes
 	ORDER BY SUM(p.pago_importe)
 
 GO
