@@ -457,7 +457,7 @@ WITH DetalleCliente AS (
         AND g.PAGO_FECHA IS NOT NULL 
         AND g.PAGO_MEDIO_PAGO IS NOT NULL
 )
---INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
+INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
 SELECT
     (CASE 
         WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL

@@ -1,4 +1,4 @@
-CREATE SCHEMA Pteradata
+--CREATE SCHEMA Pteradata
 GO
 CREATE PROCEDURE crearTodasLasTablas AS 
 BEGIN
