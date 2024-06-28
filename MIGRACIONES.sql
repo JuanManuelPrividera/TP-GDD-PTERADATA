@@ -438,27 +438,18 @@ para relacionar cada pago con el tipo y medio de pago al que pertenecen.
 GO
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN
-WITH DetalleCliente AS (
-    SELECT DISTINCT
-        g.TICKET_NUMERO AS ticket,
+SELECT DISTINCT g.TICKET_NUMERO AS ticket,
         g.PAGO_IMPORTE AS importe,
         g.PAGO_FECHA AS fecha,
         g.PAGO_TARJETA_NRO AS tarjeta,
         g.PAGO_TARJETA_CUOTAS as cuotas,
         g.PAGO_TIPO_MEDIO_PAGO AS tipo_medio,
-        g.PAGO_MEDIO_PAGO as medio_pago
-    FROM
-        gd_esquema.Maestra g
-    JOIN
-        Pteradata.Ticket t ON t.ticket_numero = g.TICKET_NUMERO
-    WHERE
-        g.PAGO_IMPORTE IS NOT NULL 
-        AND g.TICKET_NUMERO IS NOT NULL 
-        AND g.PAGO_FECHA IS NOT NULL 
-        AND g.PAGO_MEDIO_PAGO IS NOT NULL
-)
-INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
-SELECT
+        g.PAGO_MEDIO_PAGO as medio_pago INTO #DetalleCliente
+ FROM gd_esquema.Maestra g JOIN Pteradata.Ticket t ON t.ticket_numero=g.TICKET_NUMERO
+ WHERE g.PAGO_IMPORTE IS NOT NULL AND g.TICKET_NUMERO IS NOT NULL AND g.PAGO_FECHA IS NOT NULL AND g.PAGO_MEDIO_PAGO IS NOT NULL 
+
+ INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
+ SELECT
     (CASE 
         WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
         ELSE tr.nro_tarjeta
@@ -466,7 +457,7 @@ SELECT
     dc.cuotas,
 	p.ID_Pago,
     c.id_cliente
-FROM DetalleCliente dc
+FROM #DetalleCliente dc
 JOIN gd_esquema.Maestra g ON g.TICKET_NUMERO = dc.ticket
 LEFT JOIN Pteradata.Tarjeta tr ON tr.nro_tarjeta = dc.tarjeta
 JOIN Pteradata.Cliente c ON c.cliente_dni = g.CLIENTE_DNI
@@ -479,7 +470,6 @@ AND (CASE
         ELSE tr.nro_tarjeta
     END) is not null;
 END
-
 GO 
 
 CREATE PROCEDURE migrarTipoComprobante AS
