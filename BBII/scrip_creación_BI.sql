@@ -144,6 +144,7 @@ BEGIN
 	);
 END
 
+GO
 EXEC crearTodasLasTablasBI
 
 
@@ -216,7 +217,6 @@ BEGIN
 	INSERT INTO Pteradata.BI_Turno (turno_hora_inicio,turno_hora_fin)
 	VALUES('08:00:00','12:00:00'), ('12:00:01','16:00:00'),('16:00:01','20:00:00'),('20:00:01','00:00:00'),('00:00:01','07:59:59')
 END
-select * from Pteradata.BI_Turno
 GO
 CREATE PROCEDURE migrarBI_Ticket AS
 BEGIN
@@ -352,7 +352,7 @@ FROM Pteradata.BI_Ticket t
 	JOIN Pteradata.BI_Ubicacion u ON u.id_direccion = s.Id_Direccion
 	JOIN Pteradata.BI_Tiempo ti ON t.ticket_fecha = ti.id_tiempo
 GROUP BY u.Localidad, ti.año,ti.mes
-ORDER BY año,mes
+
 
 
 -- 2 --
@@ -377,7 +377,7 @@ FROM Pteradata.BI_Ticket t
 	JOIN Pteradata.BI_RangoEtario r ON r.id_rango_etario = e.id_rango_etario
 	JOIN Pteradata.BI_Tiempo ti ON t.ticket_fecha = ti.id_tiempo
 GROUP BY ti.año, ti.cuatrimestre,r.descripcion, e.caja_tipo
-ORDER BY CUATRIMESTRE, ti.año
+
 
 
 -- 4 --
@@ -391,7 +391,7 @@ JOIN Pteradata.BI_Sucursal s on t.sucursal_nombre = s.Sucursal_Nombre
 JOIN Pteradata.BI_Ubicacion u on s.Id_Direccion = u.id_direccion
 JOIN Pteradata.BI_Tiempo ti ON t.ticket_fecha = ti.id_tiempo
 GROUP BY u.Localidad, ti.mes, tu.id_turno
-ORDER BY ti.mes
+
 
 
 -- 5 --
@@ -401,7 +401,7 @@ CREATE VIEW PorcentajeDeDescuento AS
 SELECT (1 - SUM(ticket_total) / SUM(ticket_subtotal_productos)) * 100 DescuentoAplicado, ti.mes as Mes 
 FROM Pteradata.BI_Ticket t JOIN Pteradata.BI_Tiempo ti ON t.ticket_fecha = ti.id_tiempo
 GROUP BY ti.mes
-ORDER BY 2
+
 
 
 -- 6 -- 
@@ -419,15 +419,15 @@ SELECT top 3 SUM(pa.promocion_dto_aplicado) TotalDescuentosAplicados, ppc.produc
 -- 7 --
 
 -- Se crea una tabla temporal para facilitar la creación de la vista
-SELECT id_envio INTO #TempEnviosCumplidos
-	FROM Pteradata.BI_Envio e
-	WHERE e.envio_estado = 'Finalizado' AND CAST(e.fecha_entregado AS DATE) = CAST(e.envio_fecha_programada AS DATE);
-
 GO
 CREATE VIEW ProcentajeEnviosCumplidosPorSucursal AS
-SELECT DISTINCT COUNT(te.id_envio)*100 / COUNT(e.id_envio), t.sucursal_nombre AS ProcentajeDeCumplimiento
+SELECT DISTINCT COUNT(te.id_envio)*100 / COUNT(e.id_envio) PorcentajeDeCumplimiento, t.sucursal_nombre AS ProcentajeDeCumplimiento
 		FROM Pteradata.BI_Envio e
-		JOIN #TempEnviosCumplidos te on te.id_envio = e.id_envio
+		JOIN (
+			SELECT id_envio
+				FROM Pteradata.BI_Envio e
+				WHERE e.envio_estado = 'Finalizado' AND CAST(e.fecha_entregado AS DATE) = CAST(e.envio_fecha_programada AS DATE)
+			) te on te.id_envio = e.id_envio
 		JOIN Pteradata.BI_Ticket t on t.id_ticket = e.id_ticket 
 		GROUP BY t.sucursal_nombre, YEAR(e.envio_fecha_programada), MONTH(e.envio_fecha_programada)	
 
@@ -452,7 +452,7 @@ SELECT TOP 5 u.localidad
 	FROM Pteradata.BI_Cliente c
 		JOIN Pteradata.BI_Ubicacion u on u.id_direccion = c.id_direccion
 		JOIN Pteradata.BI_Envio e on e.id_cliente = c.id_cliente
-	order by e.envio_costo DESC
+
 
 
 -- 10 -- 
@@ -466,7 +466,7 @@ SELECT TOP 3 t.sucursal_nombre, ti.año, ti.mes
 		JOIN Pteradata.BI_DetallePago dp ON dp.ID_Pago = p.ID_Pago
 	WHERE dp.cant_cuotas > 1
 	GROUP BY t.sucursal_nombre, p.id_medio_pago, ti.año, ti.mes
-	ORDER BY SUM(p.pago_importe)
+
 
 
 ---11---
@@ -479,7 +479,7 @@ CREATE VIEW promedioImporteXRangoEtario AS
 	JOIN Pteradata.Pago p ON p.ID_Pago = dp.ID_Pago
 	JOIN Pteradata.BI_RangoEtario re ON re.id_rango_etario = c.id_rango_etario
 	GROUP BY re.descripcion, re.id_rango_etario
-	ORDER BY re.id_rango_etario
+
 		
 
 --12--
@@ -492,4 +492,3 @@ CREATE VIEW porcentajeDtoAplicadoMP AS
 	JOIN Pteradata.BI_MedioPago mp ON mp.id_medio_pago = p.id_medio_pago
 	JOIN Pteradata.BI_Tiempo tm ON p.pago_fecha = tm.id_tiempo
 	GROUP BY mp.Medio_Pago, tm.cuatrimestre
-	ORDER BY tm.cuatrimestre, mp.Medio_Pago
