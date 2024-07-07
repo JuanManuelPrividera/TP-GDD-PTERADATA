@@ -20,8 +20,6 @@ hacia la tabla Provincia. Utilizamos SELECT DISTINCT y UNION para asegurarnos e 
 únicas.
 */
 GO
-
-
 CREATE PROCEDURE migrarLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.Localidad(localidad_nombre, id_provincia)
@@ -434,13 +432,13 @@ BEGIN
 	JOIN Pteradata.MedioPago mp ON mp.pago_medio_pago = m.PAGO_MEDIO_PAGO
 	JOIN Pteradata.Ticket t ON t.ticket_numero = m.TICKET_NUMERO
 END
-
 /*
 Este procedimiento tiene como objetivo migrar los diferentes pagos
 hacia la tabla MedioPago.
 Utilizamos los JOIN hacia las tablas MedioPago y TipoPagoMedioPago
 para relacionar cada pago con el tipo y medio de pago al que pertenecen.
 */
+select * from Pteradata.DetallePago
 GO
 CREATE PROCEDURE migrarDetallePago AS
 BEGIN
@@ -450,12 +448,28 @@ SELECT DISTINCT g.TICKET_NUMERO AS ticket,
         g.PAGO_TARJETA_NRO AS tarjeta,
         g.PAGO_TARJETA_CUOTAS as cuotas,
         g.PAGO_TIPO_MEDIO_PAGO AS tipo_medio,
+<<<<<<< HEAD
         g.PAGO_MEDIO_PAGO as medio_pago INTO #DetalleCliente
  FROM gd_esquema.Maestra g JOIN Pteradata.Ticket t ON t.ticket_numero=g.TICKET_NUMERO
  WHERE g.PAGO_IMPORTE IS NOT NULL AND g.TICKET_NUMERO IS NOT NULL AND g.PAGO_FECHA IS NOT NULL AND g.PAGO_MEDIO_PAGO IS NOT NULL 
 
  INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
  SELECT
+=======
+        g.PAGO_MEDIO_PAGO as medio_pago
+    FROM
+        gd_esquema.Maestra g
+    JOIN
+        Pteradata.Ticket t ON t.ticket_numero = g.TICKET_NUMERO
+    WHERE
+        g.PAGO_IMPORTE IS NOT NULL 
+        AND g.TICKET_NUMERO IS NOT NULL 
+        AND g.PAGO_FECHA IS NOT NULL 
+        AND g.PAGO_MEDIO_PAGO IS NOT NULL
+)
+INSERT INTO Pteradata.DetallePago(nro_tarjeta, cant_cuotas, ID_Pago, id_cliente)
+SELECT
+>>>>>>> a3974fa (Refactor BI)
     (CASE 
         WHEN dc.tipo_medio IN ('Ejectivo') THEN NULL
         ELSE tr.nro_tarjeta
@@ -476,7 +490,11 @@ AND (CASE
         ELSE tr.nro_tarjeta
     END) is not null;
 END
+<<<<<<< HEAD
 GO 
+=======
+GO
+>>>>>>> a3974fa (Refactor BI)
 
 CREATE PROCEDURE migrarTipoComprobante AS
 BEGIN
