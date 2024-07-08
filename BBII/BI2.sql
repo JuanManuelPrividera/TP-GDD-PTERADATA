@@ -34,6 +34,40 @@ BEGIN
 END
 
 GO
+
+CREATE FUNCTION Pteradata.getTurno (@fecha_hora DATETIME) RETURNS INT AS 
+BEGIN
+	DECLARE @id_turno INT
+	DECLARE @hora TIME 
+	SET @hora = CAST(@fecha_hora AS TIME)
+
+	IF(@hora BETWEEN '08:00:00' AND '12:00:00')
+		SET @id_turno = 1
+	ELSE IF (@hora BETWEEN '12:00:01' AND '16:00:00')
+		SET @id_turno = 2
+	ELSE IF (@hora BETWEEN '16:00:01' AND '20:00:00')
+		SET @id_turno = 3
+	ELSE 
+		SET @id_turno = 4
+
+	RETURN @id_turno
+
+END
+
+GO
+
+CREATE FUNCTION Pteradata.getImportePorCuota (@importe_total DECIMAL(10,2), @cant_cuotas INT) RETURNS DECIMAL(10,2) AS
+BEGIN
+	DECLARE @importe_por_cuota DECIMAL (10,2)
+	IF(@cant_cuotas = 1)
+		SET @importe_por_cuota = @importe_total
+	ELSE 
+		SET @importe_por_cuota = @importe_total / @cant_cuotas
+
+	RETURN @importe_por_cuota
+END
+
+GO
 -----------------------------------
 -- CREACIÓN TABLA DE DIMENSIONES --
 -----------------------------------
@@ -204,9 +238,8 @@ GO
 CREATE PROCEDURE migrar_BI_DimLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimLocalidad
-	SELECT DISTINCT localidad_nombre, provincia_nombre
-		FROM Pteradata.Localidad l
-			JOIN Pteradata.Provincia p on p.id_provincia = l.id_provincia
+	SELECT DISTINCT localidad_nombre, provincia_nombre FROM Pteradata.Localidad l
+		JOIN Pteradata.Provincia p on p.id_provincia = l.id_provincia
 END
 
 GO
@@ -258,6 +291,8 @@ BEGIN
 		SELECT YEAR(envio_fecha_programada) año FROM Pteradata.Envio
 		UNION
 		SELECT YEAR(fecha_entregado) año FROM Pteradata.Envio
+		UNION
+		SELECT YEAR(pago_fecha) año FROM Pteradata.Pago
 	) años
 END
 
@@ -277,9 +312,12 @@ BEGIN
 	INSERT INTO Pteradata.BI_DimTurno (nombre,hora_inicio,hora_fin) VALUES 
 		('Mañana', '08:00:00','12:00:00'),
 		('Tarde', '12:00:01','16:00:00'),
-		('Noche', '16:00:01','20:00:00')
+		('Noche', '16:00:01','20:00:00'),
+		('Otro', '20:00:01','07:59:99') 
 END
-
+/*
+Creo el turno Otro ya que hay tickets que se emiten en horarios fuera de turno
+*/
 GO
 
 CREATE PROCEDURE migrar_BI_DimRangoEtario AS
@@ -349,3 +387,51 @@ BEGIN
 			JOIN Pteradata.BI_DimLocalidad dl ON dl.nombre = l.localidad_nombre AND dl.id_provincia = dp.id_provincia
 			JOIN Pteradata.BI_DimCliente dc ON dc.id_rango_etario = Pteradata.getRangoEtario(c.cliente_fecha_nacimiento) AND dc.id_localidad =  dl.id_localidad
 END
+
+GO
+
+CREATE PROCEDURE migrar_BI_HechosVentas AS
+BEGIN
+	INSERT INTO Pteradata.BI_HechosVentas
+	SELECT dt.id_tiempo, Pteradata.getTurno(t.ticket_fecha_hora), ds.id_localidad, Pteradata.getRangoEtario(e.empleado_fecha_nacimiento), 
+			dtc.id_tipo_caja, t.ticket_total, (t.ticket_total_Descuento_aplicado*100)/t.ticket_subtotal_productos, t.ticket_total_Descuento_aplicado,
+			SUM(tp.ticket_det_cantidad)
+	FROM Pteradata.Ticket t
+		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(t.ticket_fecha_hora) AND dt.id_mes = MONTH(t.ticket_fecha_hora)
+		JOIN Pteradata.Sucursal s ON t.sucursal_nombre = s.sucursal_nombre
+		JOIN Pteradata.BI_DimSucursal ds ON ds.nombre = s.sucursal_nombre
+		JOIN Pteradata.Empleado e ON e.legajo_empleado = t.legajo_empleado
+		JOIN Pteradata.Caja c ON c.id_caja = t.id_caja
+		JOIN Pteradata.CajaTipo ct ON ct.id_caja_tipo = c.id_caja_tipo
+		JOIN Pteradata.BI_DimTipoCaja dtc ON dtc.descripcion = ct.caja_tipo
+		JOIN Pteradata.TicketPorProducto tp ON tp.id_ticket = t.id_ticket
+		
+END
+
+GO
+
+CREATE PROCEDURE migrar_BI_HechosPagos AS
+BEGIN
+	INSERT INTO Pteradata.BI_HechosPagos
+	SELECT dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento),
+	p.pago_importe, Pteradata.getImportePorCuota(p.pago_importe, dp.cant_cuotas), t.ticket_det_Descuento_medio_pago
+	FROM Pteradata.Pago p
+		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(p.pago_fecha) AND dt.id_mes = MONTH(p.pago_fecha) 
+		JOIN Pteradata.Ticket t ON t.id_ticket = p.id_ticket
+		JOIN Pteradata.BI_DimSucursal ds ON ds.nombre = t.sucursal_nombre
+		JOIN Pteradata.MedioPago mp ON p.id_medio_pago = mp.id_medio_pago
+		JOIN Pteradata.BI_DimMedioPago dmp ON dmp.descripcion = mp.pago_medio_pago
+		JOIN Pteradata.DetallePago dp ON dp.ID_pago = p.ID_pago
+		JOIN Pteradata.Cliente c ON c.id_cliente = dp.id_cliente
+
+END
+
+
+
+
+
+
+----------------------------
+--   CREACION DE VISTAS   --
+----------------------------
+
