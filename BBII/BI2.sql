@@ -1,4 +1,6 @@
--- Funciones auxiliares
+--------------------------
+-- FUNCIONES AUXILIARES --
+--------------------------
 CREATE FUNCTION Pteradata.getRangoEtario (@fecha_nacimiento DATE) 
 RETURNS INT 
 AS
@@ -19,7 +21,22 @@ END
 
 GO
 
--- Creación tablas de Dimensiones --
+CREATE FUNCTION Pteradata.isEntregadoATiempo (@fechaProgramada DATETIME, @fechaEntrega DATETIME) RETURNS INT AS
+BEGIN
+
+	DECLARE @result INT
+	IF @fechaEntrega <= @fechaProgramada
+		SET @result = 1
+	ELSE
+		SET @result = 0
+
+	RETURN @result
+END
+
+GO
+-----------------------------------
+-- CREACIÓN TABLA DE DIMENSIONES --
+-----------------------------------
 CREATE TABLE Pteradata.BI_DimProvincia (
 	id_provincia INT IDENTITY(1, 1) PRIMARY KEY,
 	nombre NVARCHAR(255)
@@ -29,6 +46,7 @@ GO
 
 CREATE TABLE Pteradata.BI_DimLocalidad (
 	id_localidad INT IDENTITY(1, 1) PRIMARY KEY,
+	id_provincia INT REFERENCES Pteradata.BI_DimProvincia,
 	nombre NVARCHAR(255)
 );
 
@@ -116,8 +134,9 @@ CREATE TABLE Pteradata.BI_DimTipoCaja (
 );
 
 GO
-
--- Creación Tablas de Hechos --
+------------------------------
+-- CREACIÓN TABLA DE HECHOS --
+------------------------------
 CREATE TABLE Pteradata.BI_HechosVentas (
 	id_hechos_ventas INT IDENTITY(1, 1) PRIMARY KEY,
 	id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
@@ -171,7 +190,9 @@ CREATE TABLE Pteradata.BI_HechosPagos (
 GO
 
 
--- Migracion de tabla de dimensiones
+--------------------------------
+-- MIGRACIÓN TABLAS DIMENSIÓN --
+--------------------------------
 CREATE PROCEDURE migrar_BI_DimProvincia AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimProvincia
@@ -183,7 +204,9 @@ GO
 CREATE PROCEDURE migrar_BI_DimLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimLocalidad
-	SELECT DISTINCT localidad_nombre FROM Pteradata.Localidad
+	SELECT DISTINCT localidad_nombre, provincia_nombre
+		FROM Pteradata.Localidad l
+			JOIN Pteradata.Provincia p on p.id_provincia = l.id_provincia
 END
 
 GO
@@ -274,7 +297,7 @@ GO
 CREATE PROCEDURE migrar_BI_DimCliente AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimCliente (id_rango_etario,id_localidad)
-	SELECT Pteradata.getRangoEtario(c.cliente_fecha_nacimiento) FROM Pteradata.Cliente c
+	SELECT Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), dl.id_localidad FROM Pteradata.Cliente c
 	JOIN Pteradata.Direccion d ON d.id_direccion = c.id_direccion
 	JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad
 	JOIN Pteradata.BI_DimLocalidad dl ON l.localidad_nombre = dl.nombre
@@ -305,4 +328,24 @@ BEGIN
 END
 
 GO
--- Migracion tablas de hechos
+
+----------------------------
+-- MIGRACIÓN TABLA HECHOS --
+----------------------------
+
+CREATE PROCEDURE migrar_BI_HechosEnvio AS
+BEGIN
+	INSERT INTO Pteradata.BI_HechosEnvios 
+	SELECT dt.id_tiempo, ds.id_sucursal, dc.id_cliente, e.envio_costo, Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado)
+		FROM Pteradata.Envio e
+			JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(e.envio_fecha_programada) AND dt.id_mes = MONTH(e.envio_fecha_programada)
+			JOIN Pteradata.Ticket t ON t.id_ticket = e.id_ticket
+			JOIN Pteradata.BI_DimSucursal ds ON ds.nombre = t.sucursal_nombre
+			JOIN Pteradata.Cliente c ON c.id_cliente = e.id_cliente
+			JOIN Pteradata.Direccion d ON d.id_direccion = c.id_direccion
+			JOIN Pteradata.Localidad l ON L.id_localidad = d.id_localidad
+			JOIN Pteradata.Provincia p ON p.id_provincia = l.id_provincia
+			JOIN Pteradata.BI_DimProvincia dp ON dp.nombre = p.provincia_nombre
+			JOIN Pteradata.BI_DimLocalidad dl ON dl.nombre = l.localidad_nombre AND dl.id_provincia = dp.id_provincia
+			JOIN Pteradata.BI_DimCliente dc ON dc.id_rango_etario = Pteradata.getRangoEtario(c.cliente_fecha_nacimiento) AND dc.id_localidad =  dl.id_localidad
+END
