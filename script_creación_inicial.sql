@@ -3,9 +3,9 @@
 -------------------- CREACIÓN DE TABLAS -----------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
 
---CREATE SCHEMA Pteradata
+CREATE SCHEMA Pteradata
 GO
-CREATE PROCEDURE crearTodasLasTablas AS 
+CREATE PROCEDURE Pteradata.crearTodasLasTablas AS 
 BEGIN
     CREATE TABLE Pteradata.Descuento(
         Descuento_Codigo DECIMAL (18,0) PRIMARY KEY,
@@ -312,7 +312,7 @@ END
 
 GO
 
-EXEC crearTodasLasTablas
+EXEC Pteradata.crearTodasLasTablas
 
 
 
@@ -321,7 +321,7 @@ EXEC crearTodasLasTablas
 ---------------------------------------------------------------------------------------------------------
 
 GO
-CREATE PROCEDURE migrarProvincia AS
+CREATE PROCEDURE Pteradata.migrarProvincia AS
 BEGIN
 	INSERT INTO Pteradata.Provincia(provincia_nombre) 
 	SELECT DISTINCT SUPER_PROVINCIA FROM gd_esquema.Maestra
@@ -339,7 +339,7 @@ hacia la tabla Provincia. Utilizamos SELECT DISTINCT y UNION para asegurarnos e 
 
 
 GO
-CREATE PROCEDURE migrarLocalidad AS
+CREATE PROCEDURE Pteradata.migrarLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.Localidad(localidad_nombre, id_provincia)
 	SELECT DISTINCT SUPER_LOCALIDAD, p.id_provincia FROM gd_esquema.Maestra g 
@@ -360,7 +360,7 @@ para relacionar las localidades con la provincia en la que se encuentra.
 
 
 GO
-CREATE PROCEDURE migrarDireccion AS
+CREATE PROCEDURE Pteradata.migrarDireccion AS
 BEGIN 
 	INSERT INTO Pteradata.Direccion(domicilio, id_localidad)
 	SELECT DISTINCT SUPER_DOMICILIO, p.id_localidad FROM gd_esquema.Maestra g 
@@ -381,7 +381,7 @@ para relacionar las direcciones con la localidad en la que se encuentra.
 
 
 GO
-CREATE PROCEDURE migrarCliente AS
+CREATE PROCEDURE Pteradata.migrarCliente AS
 BEGIN
 	INSERT INTO Pteradata.Cliente(id_direccion, cliente_nombre,cliente_apellido,cliente_fecha_registro,cliente_telefono,cliente_mail,cliente_fecha_nacimiento,cliente_dni)
 	SELECT DISTINCT d.id_direccion, CLIENTE_NOMBRE, CLIENTE_APELLIDO, CLIENTE_FECHA_REGISTRO,CLIENTE_TELEFONO,CLIENTE_MAIL,CLIENTE_FECHA_NACIMIENTO,CLIENTE_DNI
@@ -399,7 +399,7 @@ y JOINS para relacionar al cliente con la direccion en la que vive.
 
 
 GO
-CREATE PROCEDURE migrarSupermercado AS
+CREATE PROCEDURE Pteradata.migrarSupermercado AS
 BEGIN
 	INSERT INTO Pteradata.Supermercado(cuit, id_direccion, nombre, razon,iibb,fecha_ini_actividad,condicion_fiscal)
 	SELECT DISTINCT SUPER_CUIT, d.id_direccion,SUPER_NOMBRE ,SUPER_RAZON_SOC,SUPER_IIBB,SUPER_FECHA_INI_ACTIVIDAD,SUPER_CONDICION_FISCAL
@@ -417,7 +417,7 @@ y JOINS para relacionar al supermercado con la direccion en la que se encuentra.
 
 
 GO
-CREATE PROCEDURE migrarSucursal AS
+CREATE PROCEDURE Pteradata.migrarSucursal AS
 BEGIN
 	INSERT INTO Pteradata.Sucursal(sucursal_nombre,id_direccion,cuit)
 	SELECT DISTINCT SUCURSAL_NOMBRE, d.id_direccion, SUPER_CUIT
@@ -435,7 +435,7 @@ y JOINS para relacionar las sucursales con la direccion en la que se encuentran.
 
 
 GO
-CREATE PROCEDURE migrarCajaTipo AS
+CREATE PROCEDURE Pteradata.migrarCajaTipo AS
 BEGIN
 	INSERT INTO Pteradata.CajaTipo(caja_tipo)
 	SELECT DISTINCT CAJA_TIPO FROM gd_esquema.Maestra
@@ -449,7 +449,7 @@ Utilizamos SELECT DISTINCT para migrar un unico tipo de caja
 
 
 GO
-CREATE PROCEDURE migrarCaja AS
+CREATE PROCEDURE Pteradata.migrarCaja AS
 BEGIN
 	INSERT INTO Pteradata.Caja(sucursal_nombre, id_caja_tipo, caja_numero)
 	SELECT DISTINCT  sc.sucursal_nombre, ct.id_caja_tipo, m.CAJA_NUMERO
@@ -467,7 +467,7 @@ y JOINS para relacionar las cajas con el tipo de caja que son y la sucursal a la
 
 
 GO
-CREATE PROCEDURE migrarEmpleados AS
+CREATE PROCEDURE Pteradata.migrarEmpleados AS
 BEGIN
 	INSERT INTO Pteradata.Empleado(ID_Caja,sucursal_nombre,empleado_dni,empleado_nombre,empleado_apellido,empleado_fecha_nacimiento,empleado_fecha_registro)
 	SELECT DISTINCT c.ID_Caja,s.sucursal_nombre,EMPLEADO_DNI,EMPLEADO_NOMBRE,EMPLEADO_APELLIDO,EMPLEADO_FECHA_NACIMIENTO,EMPLEADO_FECHA_REGISTRO
@@ -485,7 +485,7 @@ para relacionarlos con sus datos de contacto y la sucursal en la que trabajan.
 
 
 GO
-CREATE PROCEDURE migrarContactoEmpleado AS
+CREATE PROCEDURE Pteradata.migrarContactoEmpleado AS
 BEGIN
 	INSERT INTO Pteradata.ContactoEmpleado(legajo_empleado,empleado_email,empleado_telefono)
 	SELECT DISTINCT e.legajo_empleado, EMPLEADO_MAIL,EMPLEADO_TELEFONO
@@ -500,7 +500,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de los contactos.
 
 
 GO
-CREATE PROCEDURE migrarRegla AS
+CREATE PROCEDURE Pteradata.migrarRegla AS
 BEGIN
 	INSERT INTO Pteradata.Reglas(regla_aplica_misma_marca,regla_aplica_mismo_prod,regla_cant_aplica_Descuento,
 	regla_cant_aplicable_regla,regla_cant_max_prod,regla_Descripcion,regla_Descuento_aplicable_prod)
@@ -518,7 +518,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de las reglas.
 
 
 GO
-CREATE PROCEDURE migrarDescuento AS
+CREATE PROCEDURE Pteradata.migrarDescuento AS
 BEGIN
 	INSERT INTO Pteradata.Descuento(Descuento_Codigo,Descuento_Descripcion, Descuento_fecha_inicio, 
 	Descuento_fecha_fin, Descuento_porcentaje_desc, Descuento_tope)
@@ -535,7 +535,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de los Descuentos.
 
 
 GO
-CREATE PROCEDURE migrarMarca AS
+CREATE PROCEDURE Pteradata.migrarMarca AS
 BEGIN
 	INSERT INTO Pteradata.Marca(Descripcion_marca)
 	SELECT DISTINCT PRODUCTO_MARCA
@@ -549,7 +549,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de marcas.
 
 
 GO
-CREATE PROCEDURE migrarCategoria AS
+CREATE PROCEDURE Pteradata.migrarCategoria AS
 BEGIN
 	INSERT INTO Pteradata.Categoria(producto_categoria)
 	SELECT DISTINCT PRODUCTO_CATEGORIA
@@ -563,7 +563,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de categorias.
 
 
 GO
-CREATE PROCEDURE migrarSubCategoria AS
+CREATE PROCEDURE Pteradata.migrarSubCategoria AS
 BEGIN
 	INSERT INTO Pteradata.SubCategoria(producto_categoria, producto_sub_categoria)
 	SELECT DISTINCT c.producto_categoria, m.PRODUCTO_SUB_CATEGORIA FROM gd_esquema.Maestra m
@@ -578,7 +578,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de subcategorias.
 
 
 GO
-CREATE PROCEDURE migrarProducto AS
+CREATE PROCEDURE Pteradata.migrarProducto AS
 BEGIN
 	INSERT INTO Pteradata.Producto(Producto_Nombre,Producto_Descripcion)
 	SELECT DISTINCT PRODUCTO_NOMBRE, PRODUCTO_DESCRIPCION
@@ -592,7 +592,7 @@ Utilziamos SELECT DISTINCT para evitar la repeticion de productos.
 
 
 GO
-CREATE PROCEDURE migrarProductoPorCategoria AS
+CREATE PROCEDURE Pteradata.migrarProductoPorCategoria AS
 BEGIN 
 	INSERT INTO Pteradata.ProductoPorCategoria(producto_categoria, id_producto)
 	SELECT DISTINCT PRODUCTO_CATEGORIA, p.id_producto FROM gd_esquema.Maestra M
@@ -605,7 +605,7 @@ mediante la utilzacion de los JOINS hacia la tabla Categoria y Producto.
 
 
 GO
-CREATE PROCEDURE migrarTarjeta AS
+CREATE PROCEDURE Pteradata.migrarTarjeta AS
 BEGIN
 	INSERT INTO Pteradata.Tarjeta(nro_tarjeta, tarjeta_fecha_vencimiento)
 	SELECT DISTINCT  PAGO_TARJETA_NRO, PAGO_TARJETA_FECHA_VENC FROM gd_esquema.Maestra M
@@ -619,7 +619,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de tarjetas.
 
 
 GO
-CREATE PROCEDURE migrarPromocion AS
+CREATE PROCEDURE Pteradata.migrarPromocion AS
 BEGIN
 	INSERT INTO Pteradata.Promocion(Promocion_Codigo,id_regla,Promocion_fecha_inicio, Promocion_fecha_fin, Promocion_Descripcion)
 	SELECT DISTINCT PROMO_CODIGO, r.id_reglas, PROMOCION_FECHA_INICIO, PROMOCION_FECHA_FIN,PROMOCION_DESCRIPCION
@@ -635,7 +635,7 @@ con la tabla Reglas para relacionar la Promocion con la regla que sigue.
 
 
 GO
-CREATE PROCEDURE migrarProductoPorMarca AS
+CREATE PROCEDURE Pteradata.migrarProductoPorMarca AS
 BEGIN
 	INSERT INTO Pteradata.ProductoPorMarca(id_producto,id_marca, precio)
 	SELECT DISTINCT p.id_producto,m.id_marca, PRODUCTO_PRECIO
@@ -650,7 +650,7 @@ mediante la utilzacion de los JOINS hacia la tabla Marca y Producto.
 
 
 GO
-CREATE PROCEDURE migrarPromocionPorProducto AS
+CREATE PROCEDURE Pteradata.migrarPromocionPorProducto AS
 BEGIN
 	INSERT INTO Pteradata.PromocionPorProducto(id_producto_marca,Promocion_Codigo)
 	SELECT DISTINCT pm.id_producto_marca,PROMO_CODIGO FROM gd_esquema.Maestra M
@@ -665,7 +665,7 @@ Este procedimiento tiene como objetivo relacionar las diferentes Promociones con
 
 
 GO
-CREATE PROCEDURE migrarEnvioEstado AS
+CREATE PROCEDURE Pteradata.migrarEnvioEstado AS
 BEGIN
 	INSERT INTO Pteradata.EnvioEstado(envio_estado)
 	SELECT DISTINCT
@@ -683,7 +683,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de estados.
 
 
 GO
-CREATE PROCEDURE migrarTicket AS
+CREATE PROCEDURE Pteradata.migrarTicket AS
 BEGIN
 	INSERT INTO Pteradata.Ticket(id_caja,legajo_empleado,sucursal_nombre,ticket_numero,ticket_total, ticket_total_envio,ticket_total_Descuento_aplicado, ticket_det_Descuento_medio_pago, 
 								ticket_fecha_hora,ticket_subtotal_productos)
@@ -706,14 +706,8 @@ el empleado que lo genero y el tipo de comprobante del ticket.
 
 
 GO
-/*
-Este procedimiento tiene como objetivo relacionar los datos de los pagos con tarjeta con su detalle
-hacia la tabla DetallePago.
-Utilizamos los JOIN a las tablas Tarjeta y Pago para relacionar la cantidad de cuotas que se saco el pago
-*/
 
-
-CREATE PROCEDURE migrarTipoPagoMedioPago AS
+CREATE PROCEDURE Pteradata.migrarTipoPagoMedioPago AS
 BEGIN 
 	INSERT INTO Pteradata.TipoPagoMedioPago(pago_tipo_medio_pago)
 	SELECT DISTINCT PAGO_TIPO_MEDIO_PAGO
@@ -728,7 +722,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de tipos medios de pago.
 
 
 GO
-CREATE PROCEDURE migrarEnvio AS
+CREATE PROCEDURE Pteradata.migrarEnvio AS
 BEGIN
 	INSERT INTO Pteradata.Envio(id_cliente, id_ticket, id_envio_estado ,envio_costo, envio_fecha_programada, envio_hora_inicio, envio_hora_fin, fecha_entregado)
 	SELECT DISTINCT c.id_cliente, t.id_ticket, e.id_envio_estado, g.ENVIO_COSTO, g.ENVIO_FECHA_PROGRAMADA, g.ENVIO_HORA_INICIO, g.ENVIO_HORA_FIN, g.ENVIO_FECHA_ENTREGA
@@ -740,7 +734,7 @@ END
 
 
 GO
-CREATE PROCEDURE migrarMedioPago AS
+CREATE PROCEDURE Pteradata.migrarMedioPago AS
 BEGIN
 	INSERT INTO Pteradata.MedioPago(pago_medio_pago, id_pago_tipo_medio_pago)
 	SELECT DISTINCT g.PAGO_MEDIO_PAGO, t.id_pago_tipo_medio_pago FROM gd_esquema.Maestra g
@@ -754,7 +748,7 @@ Utilizamos SELECT DISTINCT para evitar la repeticion de medios de pago.
 
 
 GO
-CREATE PROCEDURE migrarPago AS
+CREATE PROCEDURE Pteradata.migrarPago AS
 BEGIN
 	INSERT INTO Pteradata.Pago(id_medio_pago, id_ticket, pago_fecha,pago_importe)
 	SELECT DISTINCT mp.id_medio_pago, t.id_ticket,PAGO_FECHA, PAGO_IMPORTE FROM gd_esquema.Maestra m
@@ -771,7 +765,7 @@ para relacionar cada pago con el tipo y medio de pago al que pertenecen.
 
 
 GO
-CREATE PROCEDURE migrarDetallePago AS
+CREATE PROCEDURE Pteradata.migrarDetallePago AS
 BEGIN
 SELECT DISTINCT g.TICKET_NUMERO AS ticket,
         g.PAGO_IMPORTE AS importe,
@@ -808,7 +802,7 @@ END
 
 
 GO 
-CREATE PROCEDURE migrarTipoComprobante AS
+CREATE PROCEDURE Pteradata.migrarTipoComprobante AS
 BEGIN
 	INSERT INTO Pteradata.TipoDeComprobante(Tipo_Comprobante_Descripcion)
 	SELECT DISTINCT TICKET_TIPO_COMPROBANTE
@@ -821,7 +815,7 @@ que existen en la tabla maestra hacia la tabla TipoDeComprobante
 
 
 GO
-CREATE PROCEDURE migrarTicketPorProducto AS
+CREATE PROCEDURE Pteradata.migrarTicketPorProducto AS
 BEGIN
 	INSERT INTO Pteradata.TicketPorProducto(id_ticket,id_Producto_Marca, ticket_det_cantidad, ticket_det_precio, ticket_det_total)
 	SELECT DISTINCT t.id_ticket, pm.id_producto_marca, TICKET_DET_CANTIDAD,TICKET_DET_PRECIO,TICKET_DET_TOTAL
@@ -840,7 +834,7 @@ hacia la tabla TicketPorProductos.
 
 
 GO
-CREATE PROCEDURE migrarPomocionAplicada AS
+CREATE PROCEDURE Pteradata.migrarPomocionAplicada AS
 BEGIN
 	INSERT INTO Pteradata.PromocionAplicada(id_Promocion_Producto, id_ticket_producto,Promocion_aplicada_dto)
 	SELECT DISTINCT pn.id_Promocion_Producto, tp.id_ticket_producto, g.PROMO_APLICADA_DESCUENTO
@@ -855,7 +849,7 @@ END
 
 
 GO
-CREATE PROCEDURE migrarDescuentoPorPago AS
+CREATE PROCEDURE Pteradata.migrarDescuentoPorPago AS
 BEGIN
 	INSERT INTO Pteradata.DescuentoPorPago(id_pago,Descuento_Codigo,Descuento_aplicado)
 	SELECT p.ID_Pago, d.Descuento_Codigo, PAGO_DESCUENTO_APLICADO
@@ -870,41 +864,41 @@ hacia la tabla DescuetoPorPago
 
 
 GO
-CREATE PROCEDURE migrarTodo AS
+CREATE PROCEDURE Pteradata.migrarTodo AS
 BEGIN
-	EXEC migrarProvincia;
-	EXEC migrarLocalidad;
-	EXEC migrarDireccion;
-	EXEC migrarCliente;
-	EXEC migrarSupermercado;
-	EXEC migrarSucursal;
-	EXEC migrarCajaTipo;
-	EXEC migrarCaja;
-	EXEC migrarEmpleados; 
-	EXEC migrarContactoEmpleado;
-	EXEC migrarRegla;
-	EXEC migrarDescuento;
-	EXEC migrarMarca;
-	EXEC migrarCategoria;
-	EXEC migrarSubCategoria;
-	EXEC migrarProducto;
-	EXEC migrarProductoPorCategoria;
-	EXEC migrarTarjeta;
-	EXEC migrarPromocion;
-	EXEC migrarProductoPorMarca;
-	EXEC migrarPromocionPorProducto;
-	EXEC migrarEnvioEstado;
-	EXEC migrarTicket;
-	EXEC migrarTipoPagoMedioPago;
-	EXEC migrarEnvio;
-	EXEC migrarMedioPago;
-	EXEC migrarPago;
-	EXEC migrarDetallePago;
-	EXEC migrarTipoComprobante;
-	EXEC migrarTicketPorProducto;
-	EXEC migrarPomocionAplicada;
-	EXEC migrarDescuentoPorPago
+	EXEC Pteradata.migrarProvincia;
+	EXEC Pteradata.migrarLocalidad;
+	EXEC Pteradata.migrarDireccion;
+	EXEC Pteradata.migrarCliente;
+	EXEC Pteradata.migrarSupermercado;
+	EXEC Pteradata.migrarSucursal;
+	EXEC Pteradata.migrarCajaTipo;
+	EXEC Pteradata.migrarCaja;
+	EXEC Pteradata.migrarEmpleados; 
+	EXEC Pteradata.migrarContactoEmpleado;
+	EXEC Pteradata.migrarRegla;
+	EXEC Pteradata.migrarDescuento;
+	EXEC Pteradata.migrarMarca;
+	EXEC Pteradata.migrarCategoria;
+	EXEC Pteradata.migrarSubCategoria;
+	EXEC Pteradata.migrarProducto;
+	EXEC Pteradata.migrarProductoPorCategoria;
+	EXEC Pteradata.migrarTarjeta;
+	EXEC Pteradata.migrarPromocion;
+	EXEC Pteradata.migrarProductoPorMarca;
+	EXEC Pteradata.migrarPromocionPorProducto;
+	EXEC Pteradata.migrarEnvioEstado;
+	EXEC Pteradata.migrarTicket;
+	EXEC Pteradata.migrarTipoPagoMedioPago;
+	EXEC Pteradata.migrarEnvio;
+	EXEC Pteradata.migrarMedioPago;
+	EXEC Pteradata.migrarPago;
+	EXEC Pteradata.migrarDetallePago;
+	EXEC Pteradata.migrarTipoComprobante;
+	EXEC Pteradata.migrarTicketPorProducto;
+	EXEC Pteradata.migrarPomocionAplicada;
+	EXEC Pteradata.migrarDescuentoPorPago
 END 
 GO
 
-EXEC migrarTodo
+EXEC Pteradata.migrarTodo
