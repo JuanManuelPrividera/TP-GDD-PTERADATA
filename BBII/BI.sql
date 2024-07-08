@@ -437,12 +437,27 @@ END
 
 GO
 
+CREATE PROCEDURE migrar_BI_HechosPromociones AS
+BEGIN
+	INSERT INTO Pteradata.BI_HechosPagos
+	SELECT dt.id_tiempo, dc.id_categoria, Promocion_aplicada_dto 
+	FROM Pteradata.PromocionAplicada pa
+	JOIN Pteradata.TicketPorProducto tpp ON tpp.id_ticket_producto = pa.id_ticket_producto
+	JOIN Pteradata.Ticket t ON t.id_ticket = tpp.id_ticket
+	JOIN Pteradata.ProductoPorMarca ppm ON ppm.id_producto_marca = tpp.id_Producto_Marca
+	JOIN Pteradata.Producto p ON p.id_producto = ppm.id_producto
+	JOIN Pteradata.ProductoPorCategoria ppc ON p.id_producto = ppc.id_producto
+	JOIN BI_DimCategoria dc ON dc.nombre = ppc.producto_categoria
+	JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(t.ticket_fecha_hora) AND dt.id_mes = MONTH(t.ticket_fecha_hora)
+END
+
+
 CREATE PROCEDURE migrar_todos_los_hechos AS
 BEGIN
 	EXEC migrar_BI_HechosEnvio;
 	EXEC migrar_BI_HechosVentas;
 	EXEC migrar_BI_HechosPagos;
---	EXEC migrar_BI_HechosPromociones;
+	EXEC migrar_BI_HechosPromociones;
 END
 
 GO
