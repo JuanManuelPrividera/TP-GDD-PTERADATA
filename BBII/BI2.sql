@@ -71,156 +71,135 @@ GO
 -----------------------------------
 -- CREACIÓN TABLA DE DIMENSIONES --
 -----------------------------------
-CREATE TABLE Pteradata.BI_DimProvincia (
-	id_provincia INT IDENTITY(1, 1) PRIMARY KEY,
-	nombre NVARCHAR(255)
-);
+CREATE PROCEDURE crear_todas_las_dimensiones AS
+BEGIN
+	CREATE TABLE Pteradata.BI_DimProvincia (
+		id_provincia INT IDENTITY(1, 1) PRIMARY KEY,
+		nombre NVARCHAR(255)
+	);
+	
+	CREATE TABLE Pteradata.BI_DimLocalidad (
+		id_localidad INT IDENTITY(1, 1) PRIMARY KEY,
+		id_provincia INT REFERENCES Pteradata.BI_DimProvincia,
+		nombre NVARCHAR(255)
+	);
+
+	CREATE TABLE Pteradata.BI_DimSucursal (
+		id_sucursal INT IDENTITY(1, 1) PRIMARY KEY,
+		id_localidad INT REFERENCES Pteradata.BI_DimLocalidad,
+		nombre NVARCHAR(255),
+	);
+
+	CREATE TABLE Pteradata.BI_DimCuatrimestre (
+		id_cuatrimestre INT CHECK (id_cuatrimestre IN (1,2,3,4)) PRIMARY KEY,
+	);
+
+	CREATE TABLE Pteradata.BI_DimMes (
+		id_mes INT CHECK (id_mes IN (1,2,3,4,5,6,7,8,9,10,11,12)) PRIMARY KEY,
+		id_cuatrimestre INT REFERENCES Pteradata.BI_DimCuatrimestre,
+		nombre NVARCHAR(255)
+	);
+
+	CREATE TABLE Pteradata.BI_DimAño (
+		id_año INT PRIMARY KEY,
+	);
+
+	CREATE TABLE Pteradata.BI_DimTiempo (
+		id_tiempo INT IDENTITY(1, 1) PRIMARY KEY,
+		id_año INT REFERENCES Pteradata.BI_DimAño,
+		id_mes INT REFERENCES Pteradata.BI_DimMes,
+	);
+
+	CREATE TABLE Pteradata.BI_DimTurno (
+		id_turno INT CHECK (id_turno IN (1,2,3,4)) PRIMARY KEY,
+		nombre NVARCHAR(255),
+		hora_inicio TIME,
+		hora_fin TIME
+	);
+
+	CREATE TABLE Pteradata.BI_DimRangoEtario (
+		id_rango_etario INT IDENTITY(1,1) PRIMARY KEY,
+		nombre NVARCHAR(255),
+		edad_inicial INT,
+		edad_final INT
+	);
+
+	CREATE TABLE Pteradata.BI_DimCliente (
+		id_cliente INT IDENTITY(1,1) PRIMARY KEY,
+		id_rango_etario INT REFERENCES Pteradata.BI_DimRangoEtario,
+		id_localidad INT REFERENCES Pteradata.BI_DimLocalidad
+	);
+
+	CREATE TABLE Pteradata.BI_DimCategoria (
+		id_categoria INT IDENTITY(1,1) PRIMARY KEY,
+		nombre NVARCHAR(255)
+	);
+
+	CREATE TABLE Pteradata.BI_DimMedioPago (
+		id_medio_pago INT IDENTITY(1,1) PRIMARY KEY,
+		descripcion NVARCHAR(255)
+	);
+
+	CREATE TABLE Pteradata.BI_DimTipoCaja (
+		id_tipo_caja INT IDENTITY(1, 1) PRIMARY KEY,
+		descripcion NVARCHAR(255)
+	);
+END
 
 GO
-
-CREATE TABLE Pteradata.BI_DimLocalidad (
-	id_localidad INT IDENTITY(1, 1) PRIMARY KEY,
-	id_provincia INT REFERENCES Pteradata.BI_DimProvincia,
-	nombre NVARCHAR(255)
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimSucursal (
-	id_sucursal INT IDENTITY(1, 1) PRIMARY KEY,
-	id_localidad INT REFERENCES Pteradata.BI_DimLocalidad,
-	nombre NVARCHAR(255),
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimCuatrimestre (
-	id_cuatrimestre INT CHECK (id_cuatrimestre IN (1,2,3,4)) PRIMARY KEY,
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimMes (
-	id_mes INT CHECK (id_mes IN (1,2,3,4,5,6,7,8,9,10,11,12)) PRIMARY KEY,
-	id_cuatrimestre INT REFERENCES Pteradata.BI_DimCuatrimestre,
-	nombre NVARCHAR(255)
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimAño (
-	id_año INT PRIMARY KEY,
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimTiempo (
-	id_tiempo INT IDENTITY(1, 1) PRIMARY KEY,
-	id_año INT REFERENCES Pteradata.BI_DimAño,
-	id_mes INT REFERENCES Pteradata.BI_DimMes,
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimTurno (
-	id_turno INT CHECK (id_turno IN (1,2,3,4)) PRIMARY KEY,
-	nombre NVARCHAR(255),
-	hora_inicio TIME,
-	hora_fin TIME
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimRangoEtario (
-	id_rango_etario INT IDENTITY(1,1) PRIMARY KEY,
-	nombre NVARCHAR(255),
-	edad_inicial INT,
-	edad_final INT
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimCliente (
-	id_cliente INT IDENTITY(1,1) PRIMARY KEY,
-	id_rango_etario INT REFERENCES Pteradata.BI_DimRangoEtario,
-	id_localidad INT REFERENCES Pteradata.BI_DimLocalidad
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimCategoria (
-	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
-	nombre NVARCHAR(255)
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimMedioPago (
-	id_medio_pago INT IDENTITY(1,1) PRIMARY KEY,
-	descripcion NVARCHAR(255)
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_DimTipoCaja (
-	id_tipo_caja INT IDENTITY(1, 1) PRIMARY KEY,
-	descripcion NVARCHAR(255)
-);
-
+	EXEC crear_todas_las_dimensiones;
 GO
 ------------------------------
 -- CREACIÓN TABLA DE HECHOS --
 ------------------------------
-CREATE TABLE Pteradata.BI_HechosVentas (
-	id_hechos_ventas INT IDENTITY(1, 1) PRIMARY KEY,
-	id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
-	id_turno INT REFERENCES Pteradata.BI_DimTurno,
-	id_localidad_sucursal INT REFERENCES Pteradata.BI_DimLocalidad,
-	id_rango_etario_empleado INT REFERENCES Pteradata.BI_DimRangoEtario,
-	id_tipo_caja INT REFERENCES Pteradata.BI_DimTipoCaja,
+CREATE PROCEDURE crear_todos_los_hechos AS
+BEGIN
+	CREATE TABLE Pteradata.BI_HechosVentas (
+		id_hechos_ventas INT IDENTITY(1, 1) PRIMARY KEY,
+		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
+		id_turno INT REFERENCES Pteradata.BI_DimTurno,
+		id_localidad_sucursal INT REFERENCES Pteradata.BI_DimLocalidad,
+		id_rango_etario_empleado INT REFERENCES Pteradata.BI_DimRangoEtario,
+		id_tipo_caja INT REFERENCES Pteradata.BI_DimTipoCaja,
 	
-	monto_total DECIMAL(10, 2),
-	porcentaje_descuento DECIMAL(4, 2),
-	descuento_total DECIMAL(10, 2),
-	cantidad_articulos INT
-);
+		monto_total DECIMAL(10, 2),
+		porcentaje_descuento DECIMAL(4, 2),
+		descuento_total DECIMAL(10, 2),
+		cantidad_articulos INT
+	);
 
+	CREATE TABLE Pteradata.BI_HechosEnvios (
+		id_hechos_envios INT IDENTITY(1, 1) PRIMARY KEY,
+		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
+		id_sucursal INT REFERENCES Pteradata.BI_DimSucursal,
+		id_cliente INT REFERENCES Pteradata.BI_DimCliente,
+
+		costo DECIMAL(10, 2),
+		entregado_a_tiempo INT CHECK (entregado_a_tiempo IN (0, 1))
+	);
+
+	CREATE TABLE Pteradata.BI_HechosPromocion (
+		id_hechos_promocion INT IDENTITY(1, 1) PRIMARY KEY,
+		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
+		id_categoria INT REFERENCES Pteradata.BI_DimCategoria,
+
+		descuento_aplicado DECIMAL(10, 2)
+	);
+
+	CREATE TABLE Pteradata.BI_HechosPagos (
+		id_hechos_pagos INT IDENTITY(1, 1) PRIMARY KEY,
+		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
+		id_sucursal INT REFERENCES Pteradata.BI_DimSucursal,
+		id_medio_pago INT REFERENCES Pteradata.BI_DimMedioPago,
+		id_rango_etario_cliente INT REFERENCES Pteradata.BI_DimRangoEtario,
+
+		importe_total DECIMAL(10, 2),
+		importe_por_cuota DECIMAL(10, 2),
+		descuento_aplicado DECIMAL(10, 2)
+	);
+END
 GO
-
-CREATE TABLE Pteradata.BI_HechosEnvios (
-	id_hechos_envios INT IDENTITY(1, 1) PRIMARY KEY,
-	id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
-	id_sucursal INT REFERENCES Pteradata.BI_DimSucursal,
-	id_cliente INT REFERENCES Pteradata.BI_DimCliente,
-
-	costo DECIMAL(10, 2),
-	entregado_a_tiempo INT CHECK (entregado_a_tiempo IN (0, 1))
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_HechosPromocion (
-	id_hechos_promocion INT IDENTITY(1, 1) PRIMARY KEY,
-	id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
-	id_categoria INT REFERENCES Pteradata.BI_DimCategoria,
-
-	descuento_aplicado DECIMAL(10, 2)
-);
-
-GO
-
-CREATE TABLE Pteradata.BI_HechosPagos (
-	id_hechos_pagos INT IDENTITY(1, 1) PRIMARY KEY,
-	id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
-	id_sucursal INT REFERENCES Pteradata.BI_DimSucursal,
-	id_medio_pago INT REFERENCES Pteradata.BI_DimMedioPago,
-	id_rango_etario_cliente INT REFERENCES Pteradata.BI_DimRangoEtario,
-
-	importe_total DECIMAL(10, 2),
-	importe_por_cuota DECIMAL(10, 2),
-	descuento_aplicado DECIMAL(10, 2)
-);
-
+EXEC crear_todos_los_hechos
 GO
 
 
@@ -238,8 +217,8 @@ GO
 CREATE PROCEDURE migrar_BI_DimLocalidad AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimLocalidad
-	SELECT DISTINCT dp.id_provincia,localidad_nombre FROM Pteradata.Localidad l
-		JOIN Pteradata.Provincia p on p.id_provincia = l.id_provincia
+	SELECT DISTINCT dp.id_provincia, localidad_nombre FROM Pteradata.Localidad l
+		JOIN Pteradata.Provincia p ON p.id_provincia = l.id_provincia
 		JOIN Pteradata.BI_DimProvincia dp ON p.provincia_nombre = dp.nombre
 END
 
@@ -454,7 +433,6 @@ BEGIN
 		JOIN Pteradata.BI_DimMedioPago dmp ON dmp.descripcion = mp.pago_medio_pago
 		JOIN Pteradata.DetallePago dp ON dp.ID_pago = p.ID_pago
 		JOIN Pteradata.Cliente c ON c.id_cliente = dp.id_cliente
-
 END
 
 GO
@@ -589,3 +567,63 @@ CREATE VIEW Pteradata.EnviosPorRangoEtario(cantidad_envios, rango_etario_cliente
 
 GO
 
+/*
+Las 5 localidades (tomando la localidad del cliente) con mayor costo de envío.
+*/
+
+CREATE VIEW Pteradata.Top5LocalidadesMayorCostoEnvio(localidad, costo_envio) AS
+	SELECT localidad, costo_envio FROM (
+		SELECT l.nombre 'localidad', MAX(e.costo) 'costo_envio',
+			ROW_NUMBER() OVER (ORDER BY MAX(e.costo) DESC) AS rownum
+		FROM Pteradata.BI_HechosEnvios e
+			JOIN Pteradata.BI_DimCliente c ON e.id_cliente = c.id_cliente
+			JOIN Pteradata.BI_DimLocalidad l ON c.id_localidad = l.id_localidad
+		GROUP BY l.nombre
+	) tb
+	WHERE rownum <= 5
+
+GO
+
+/*
+Las 3 sucursales con el mayor importe de pagos en cuotas, según el medio de
+pago, mes y año. Se calcula sumando los importes totales de todas las ventas en
+cuotas.
+*/
+
+CREATE VIEW Pteradata.Top3SucursalesMayorPagoEnCuotas(importe_total, sucursal, medio_de_pago, mes, año) AS
+	SELECT importe_total, sucursal, medio_de_pago, mes, año FROM (
+		SELECT SUM(p.importe_total) 'importe_total',s.nombre 'sucursal', mp.descripcion 'medio_de_pago', m.nombre 'mes', t.id_año 'año', 
+		ROW_NUMBER() OVER (PARTITION BY mp.descripcion, m.nombre, t.id_año ORDER BY SUM(p.importe_total) DESC) AS rownum
+		FROM Pteradata.BI_HechosPagos p
+			JOIN Pteradata.BI_DimMedioPago mp ON mp.id_medio_pago = p.id_medio_pago
+			JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = p.id_tiempo
+			JOIN Pteradata.BI_DimMes m ON m.id_mes = t.id_mes
+			JOIN Pteradata.BI_DimSucursal s ON s.id_sucursal = p.id_sucursal
+		WHERE p.importe_por_cuota != p.importe_total
+		GROUP BY mp.descripcion, m.nombre, t.id_año,s.nombre) tb
+	WHERE rownum <= 3
+
+GO
+
+/*
+Promedio de importe de la cuota en función del rango etareo del cliente.
+*/
+
+CREATE VIEW Pteradata.PromedioImporteCuotaPorRangoEtario (promedio_importe, rango_etario) AS
+	SELECT CAST(SUM(p.importe_por_cuota)/COUNT(p.id_hechos_pagos) AS DECIMAL(10,2)), r.nombre FROM Pteradata.BI_HechosPagos p
+		JOIN Pteradata.BI_DimRangoEtario r ON r.id_rango_etario = p.id_rango_etario_cliente
+	WHERE p.importe_por_cuota != p.importe_total
+	GROUP BY r.nombre
+
+GO
+/*
+Porcentaje de descuento aplicado por cada medio de pago en función del valor
+de total de pagos sin el descuento, por cuatrimestre. Es decir, total de descuentos
+sobre el total de pagos más el total de descuentos.
+*/
+
+CREATE VIEW Pteradata.PorcentajeDescuentoPorMedioPago (porcentaje_descuento, medio_de_pago) AS
+	SELECT SUM(p.descuento_aplicado)/(SUM(p.importe_total) + SUM(p.descuento_aplicado)) * 100, mp.descripcion
+	FROM Pteradata.BI_HechosPagos p
+		JOIN Pteradata.BI_DimMedioPago mp ON mp.id_medio_pago = p.id_medio_pago
+	GROUP BY mp.descripcion
