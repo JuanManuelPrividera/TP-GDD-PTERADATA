@@ -21,7 +21,8 @@ END
 
 GO
 
-CREATE FUNCTION Pteradata.isEntregadoATiempo (@fechaProgramada DATETIME, @fechaEntrega DATETIME) RETURNS INT AS
+
+CREATE FUNCTION Pteradata.isEntregadoATiempo (@fechaProgramada DATE, @fechaEntrega DATE) RETURNS INT AS
 BEGIN
 
 	DECLARE @result INT
@@ -56,15 +57,15 @@ END
 
 GO
 
-CREATE FUNCTION Pteradata.getImportePorCuota (@importe_total DECIMAL(10,2), @cant_cuotas INT) RETURNS DECIMAL(10,2) AS
+CREATE FUNCTION Pteradata.isCuota (@cant_cuotas INT) RETURNS INT AS
 BEGIN
-	DECLARE @importe_por_cuota DECIMAL (10,2)
+	DECLARE @return INT
 	IF(@cant_cuotas = 1)
-		SET @importe_por_cuota = @importe_total
+		SET @return = 0
 	ELSE 
-		SET @importe_por_cuota = @importe_total / @cant_cuotas
+		SET @return = 1
 
-	RETURN @importe_por_cuota
+	RETURN @return
 END
 
 GO
@@ -124,12 +125,6 @@ BEGIN
 		edad_final INT
 	);
 
-	CREATE TABLE Pteradata.BI_DimCliente (
-		id_cliente INT IDENTITY(1,1) PRIMARY KEY,
-		id_rango_etario INT REFERENCES Pteradata.BI_DimRangoEtario,
-		id_localidad INT REFERENCES Pteradata.BI_DimLocalidad
-	);
-
 	CREATE TABLE Pteradata.BI_DimCategoria (
 		id_categoria INT IDENTITY(1,1) PRIMARY KEY,
 		nombre NVARCHAR(255)
@@ -162,28 +157,33 @@ BEGIN
 		id_rango_etario_empleado INT REFERENCES Pteradata.BI_DimRangoEtario,
 		id_tipo_caja INT REFERENCES Pteradata.BI_DimTipoCaja,
 	
-		monto_total DECIMAL(10, 2),
-		porcentaje_descuento DECIMAL(4, 2),
-		descuento_total DECIMAL(10, 2),
+		monto_total_final DECIMAL(16, 2),
+		descuento_total DECIMAL(16, 2),
+		monto_total_sin_descuento DECIMAL(16, 2),
 		cantidad_articulos INT
 	);
+
+	
 
 	CREATE TABLE Pteradata.BI_HechosEnvios (
 		id_hechos_envios INT IDENTITY(1, 1) PRIMARY KEY,
 		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
 		id_sucursal INT REFERENCES Pteradata.BI_DimSucursal,
-		id_cliente INT REFERENCES Pteradata.BI_DimCliente,
+		id_rango_etario_cliente INT REFERENCES Pteradata.BI_DimRangoEtario,
+		localidad_cliente INT REFERENCES Pteradata.BI_DimLocalidad,
 
-		costo DECIMAL(10, 2),
+		costo DECIMAL(16, 2),
 		entregado_a_tiempo INT CHECK (entregado_a_tiempo IN (0, 1))
 	);
+
+	DROP TABLE Pteradata.BI_HechosPromocion
 
 	CREATE TABLE Pteradata.BI_HechosPromocion (
 		id_hechos_promocion INT IDENTITY(1, 1) PRIMARY KEY,
 		id_tiempo INT REFERENCES Pteradata.BI_DimTiempo,
 		id_categoria INT REFERENCES Pteradata.BI_DimCategoria,
 
-		descuento_aplicado DECIMAL(10, 2)
+		descuento_aplicado DECIMAL(16, 2)
 	);
 
 	CREATE TABLE Pteradata.BI_HechosPagos (
@@ -193,9 +193,9 @@ BEGIN
 		id_medio_pago INT REFERENCES Pteradata.BI_DimMedioPago,
 		id_rango_etario_cliente INT REFERENCES Pteradata.BI_DimRangoEtario,
 
-		importe_total DECIMAL(10, 2),
-		importe_por_cuota DECIMAL(10, 2),
-		descuento_aplicado DECIMAL(10, 2)
+		importe_total DECIMAL(16, 2),
+		is_cuota INT CHECK (is_cuota IN (0, 1)),
+		descuento_aplicado DECIMAL(16, 2)
 	);
 END
 GO
@@ -238,7 +238,7 @@ GO
 
 CREATE PROCEDURE Pteradata.migrar_BI_DimCuatrimestre AS
 BEGIN
-	INSERT INTO Pteradata.BI_DimCuatrimestre (id_cuatrimestre) VALUES (1),(2),(3),(4)
+	INSERT INTO Pteradata.BI_DimCuatrimestre (id_cuatrimestre) VALUES (1),(2),(3)
 END
 
 GO
@@ -249,15 +249,15 @@ INSERT INTO Pteradata.BI_DimMes (id_mes, id_cuatrimestre, nombre) VALUES
 	(1, 1, 'Enero'), 
 	(2, 1, 'Febrero'), 
 	(3, 1, 'Marzo'),
-	(4, 2, 'Abril'), 
+	(4, 1, 'Abril'), 
 	(5, 2, 'Mayo'), 
 	(6, 2, 'Junio'),
-	(7, 3, 'Julio'), 
-	(8, 3, 'Agosto'), 
+	(7, 2, 'Julio'), 
+	(8, 2, 'Agosto'), 
 	(9, 3, 'Septiembre'),
-	(10, 4, 'Octubre'), 
-	(11, 4, 'Noviembre'), 
-	(12, 4, 'Diciembre');
+	(10, 3, 'Octubre'), 
+	(11, 3, 'Noviembre'), 
+	(12, 3, 'Diciembre');
 END
 
 GO
@@ -312,17 +312,6 @@ END
 
 GO
 
-CREATE PROCEDURE Pteradata.migrar_BI_DimCliente AS
-BEGIN
-	INSERT INTO Pteradata.BI_DimCliente (id_rango_etario,id_localidad)
-	SELECT Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), dl.id_localidad FROM Pteradata.Cliente c
-	JOIN Pteradata.Direccion d ON d.id_direccion = c.id_direccion
-	JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad
-	JOIN Pteradata.BI_DimLocalidad dl ON l.localidad_nombre = dl.nombre
-END
-
-GO
-
 CREATE PROCEDURE Pteradata.migrar_BI_DimCategoria AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimCategoria(nombre)
@@ -360,7 +349,6 @@ BEGIN
 			EXEC Pteradata.migrar_BI_DimTiempo;
 			EXEC Pteradata.migrar_BI_DimTurno;
 			EXEC Pteradata.migrar_BI_DimRangoEtario;
-			EXEC Pteradata.migrar_BI_DimCliente;
 			EXEC Pteradata.migrar_BI_DimCategoria;
 			EXEC Pteradata.migrar_BI_DimMedioPago;
 			EXEC Pteradata.migrar_BI_DimTipoCaja;
@@ -380,21 +368,26 @@ GO
 -- MIGRACIÓN TABLA HECHOS --
 ----------------------------
 
+SELECT * FROM Pteradata.Envio
+
 CREATE PROCEDURE Pteradata.migrar_BI_HechosEnvio AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosEnvios 
-	SELECT dt.id_tiempo, ds.id_sucursal, dc.id_cliente, e.envio_costo, Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado)
+	SELECT dt.id_tiempo, ds.id_sucursal, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), dl.id_localidad,
+			SUM(e.envio_costo), Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado)
 		FROM Pteradata.Envio e
 			JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(e.envio_fecha_programada) AND dt.id_mes = MONTH(e.envio_fecha_programada)
 			JOIN Pteradata.Ticket t ON t.id_ticket = e.id_ticket
 			JOIN Pteradata.BI_DimSucursal ds ON ds.nombre = t.sucursal_nombre
 			JOIN Pteradata.Cliente c ON c.id_cliente = e.id_cliente
 			JOIN Pteradata.Direccion d ON d.id_direccion = c.id_direccion
-			JOIN Pteradata.Localidad l ON L.id_localidad = d.id_localidad
+			JOIN Pteradata.Localidad l ON l.id_localidad = d.id_localidad
 			JOIN Pteradata.Provincia p ON p.id_provincia = l.id_provincia
 			JOIN Pteradata.BI_DimProvincia dp ON dp.nombre = p.provincia_nombre
 			JOIN Pteradata.BI_DimLocalidad dl ON dl.nombre = l.localidad_nombre AND dl.id_provincia = dp.id_provincia
-			JOIN Pteradata.BI_DimCliente dc ON dc.id_rango_etario = Pteradata.getRangoEtario(c.cliente_fecha_nacimiento) AND dc.id_localidad =  dl.id_localidad
+	GROUP BY dt.id_tiempo, ds.id_sucursal, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), 
+	Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado), dl.id_localidad
+
 END
 
 GO
@@ -403,12 +396,13 @@ CREATE PROCEDURE Pteradata.migrar_BI_HechosVentas AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosVentas
 	SELECT DISTINCT dt.id_tiempo, Pteradata.getTurno(t.ticket_fecha_hora), ds.id_localidad, Pteradata.getRangoEtario(e.empleado_fecha_nacimiento), 
-			dtc.id_tipo_caja, t.ticket_total, 
-			CAST(((t.ticket_total_Descuento_aplicado + t.ticket_det_Descuento_medio_pago) *100)/t.ticket_subtotal_productos AS DECIMAL(4,2)), 
-			t.ticket_total_Descuento_aplicado + t.ticket_det_Descuento_medio_pago,
-			(SELECT SUM(tp.ticket_det_cantidad) FROM Pteradata.TicketPorProducto tp WHERE tp.id_ticket = t.id_ticket)
-	
+			dtc.id_tipo_caja, 
+			CAST( SUM(t.ticket_total) AS DECIMAL(16, 2) ), 
+			CAST( SUM(t.ticket_total_Descuento_aplicado + t.ticket_det_Descuento_medio_pago) AS DECIMAL(16, 2) ),
+			CAST( SUM(t.ticket_subtotal_productos) AS DECIMAL(16, 2) ),
+			SUM(tp.ticket_det_cantidad)
 	FROM Pteradata.Ticket t
+		JOIN Pteradata.TicketPorProducto tp ON tp.id_ticket = t.id_ticket
 		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(t.ticket_fecha_hora) AND dt.id_mes = MONTH(t.ticket_fecha_hora)
 		JOIN Pteradata.Sucursal s ON t.sucursal_nombre = s.sucursal_nombre
 		JOIN Pteradata.BI_DimSucursal ds ON ds.nombre = s.sucursal_nombre
@@ -416,6 +410,11 @@ BEGIN
 		JOIN Pteradata.Caja c ON c.id_caja = t.id_caja
 		JOIN Pteradata.CajaTipo ct ON ct.id_caja_tipo = c.id_caja_tipo
 		JOIN Pteradata.BI_DimTipoCaja dtc ON dtc.descripcion = ct.caja_tipo
+	GROUP BY 
+		dt.id_tiempo, dt.id_mes, dt.id_año, ds.id_localidad, dtc.id_tipo_caja, 
+		Pteradata.getRangoEtario(e.empleado_fecha_nacimiento),
+		Pteradata.getTurno(t.ticket_fecha_hora)
+		
 END
 
 GO
@@ -424,7 +423,7 @@ CREATE PROCEDURE Pteradata.migrar_BI_HechosPagos AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosPagos
 	SELECT DISTINCT dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento),
-	p.pago_importe, Pteradata.getImportePorCuota(p.pago_importe, dp.cant_cuotas), t.ticket_det_Descuento_medio_pago
+	SUM(p.pago_importe), Pteradata.isCuota(dp.cant_cuotas), SUM(t.ticket_det_Descuento_medio_pago)
 	FROM Pteradata.Pago p
 		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(p.pago_fecha) AND dt.id_mes = MONTH(p.pago_fecha) 
 		JOIN Pteradata.Ticket t ON t.id_ticket = p.id_ticket
@@ -433,6 +432,8 @@ BEGIN
 		JOIN Pteradata.BI_DimMedioPago dmp ON dmp.descripcion = mp.pago_medio_pago
 		JOIN Pteradata.DetallePago dp ON dp.ID_pago = p.ID_pago
 		JOIN Pteradata.Cliente c ON c.id_cliente = dp.id_cliente
+	GROUP BY dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago,
+				Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), Pteradata.isCuota(dp.cant_cuotas)
 END
 
 GO
@@ -440,7 +441,7 @@ GO
 CREATE PROCEDURE Pteradata.migrar_BI_HechosPromociones AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosPromocion
-	SELECT DISTINCT dt.id_tiempo, dc.id_categoria, Promocion_aplicada_dto 
+	SELECT DISTINCT dt.id_tiempo, dc.id_categoria, SUM(Promocion_aplicada_dto)
 	FROM Pteradata.PromocionAplicada pa
 		JOIN Pteradata.TicketPorProducto tpp ON tpp.id_ticket_producto = pa.id_ticket_producto
 		JOIN Pteradata.Ticket t ON t.id_ticket = tpp.id_ticket
@@ -449,6 +450,7 @@ BEGIN
 		JOIN Pteradata.ProductoPorCategoria ppc ON p.id_producto = ppc.id_producto
 		JOIN Pteradata.BI_DimCategoria dc ON dc.nombre = ppc.producto_categoria
 		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(t.ticket_fecha_hora) AND dt.id_mes = MONTH(t.ticket_fecha_hora)
+	GROUP BY dt.id_tiempo, dc.id_categoria
 END
 
 GO
