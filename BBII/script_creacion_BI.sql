@@ -160,6 +160,7 @@ BEGIN
 		monto_total_final DECIMAL(16, 2),
 		descuento_total DECIMAL(16, 2),
 		monto_total_sin_descuento DECIMAL(16, 2),
+		cantidad_de_ventas INT,
 		cantidad_articulos INT
 	);
 
@@ -175,8 +176,6 @@ BEGIN
 		costo DECIMAL(16, 2),
 		entregado_a_tiempo INT CHECK (entregado_a_tiempo IN (0, 1))
 	);
-
-	DROP TABLE Pteradata.BI_HechosPromocion
 
 	CREATE TABLE Pteradata.BI_HechosPromocion (
 		id_hechos_promocion INT IDENTITY(1, 1) PRIMARY KEY,
@@ -195,7 +194,8 @@ BEGIN
 
 		importe_total DECIMAL(16, 2),
 		is_cuota INT CHECK (is_cuota IN (0, 1)),
-		descuento_aplicado DECIMAL(16, 2)
+		descuento_aplicado DECIMAL(16, 2),
+		cantidad_pagos INT
 	);
 END
 GO
@@ -374,7 +374,7 @@ CREATE PROCEDURE Pteradata.migrar_BI_HechosEnvio AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosEnvios 
 	SELECT dt.id_tiempo, ds.id_sucursal, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), dl.id_localidad,
-			SUM(e.envio_costo), Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado)
+			e.envio_costo, Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado)
 		FROM Pteradata.Envio e
 			JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(e.envio_fecha_programada) AND dt.id_mes = MONTH(e.envio_fecha_programada)
 			JOIN Pteradata.Ticket t ON t.id_ticket = e.id_ticket
@@ -386,7 +386,7 @@ BEGIN
 			JOIN Pteradata.BI_DimProvincia dp ON dp.nombre = p.provincia_nombre
 			JOIN Pteradata.BI_DimLocalidad dl ON dl.nombre = l.localidad_nombre AND dl.id_provincia = dp.id_provincia
 	GROUP BY dt.id_tiempo, ds.id_sucursal, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), 
-	Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado), dl.id_localidad
+	Pteradata.isEntregadoATiempo(e.envio_fecha_programada, e.fecha_entregado), dl.id_localidad, e.envio_costo
 
 END
 
@@ -400,6 +400,7 @@ BEGIN
 			CAST( SUM(t.ticket_total) AS DECIMAL(16, 2) ), 
 			CAST( SUM(t.ticket_total_Descuento_aplicado + t.ticket_det_Descuento_medio_pago) AS DECIMAL(16, 2) ),
 			CAST( SUM(t.ticket_subtotal_productos) AS DECIMAL(16, 2) ),
+			COUNT(DISTINCT t.id_ticket),
 			SUM(tp.ticket_det_cantidad)
 	FROM Pteradata.Ticket t
 		JOIN Pteradata.TicketPorProducto tp ON tp.id_ticket = t.id_ticket
@@ -423,7 +424,7 @@ CREATE PROCEDURE Pteradata.migrar_BI_HechosPagos AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosPagos
 	SELECT DISTINCT dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento),
-	SUM(p.pago_importe), Pteradata.isCuota(dp.cant_cuotas), SUM(t.ticket_det_Descuento_medio_pago)
+	SUM(p.pago_importe), Pteradata.isCuota(dp.cant_cuotas), SUM(t.ticket_det_Descuento_medio_pago), COUNT(DISTINCT p.ID_Pago)
 	FROM Pteradata.Pago p
 		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(p.pago_fecha) AND dt.id_mes = MONTH(p.pago_fecha) 
 		JOIN Pteradata.Ticket t ON t.id_ticket = p.id_ticket
@@ -481,7 +482,7 @@ ventas sobre el total de las mismas.
 */
 
 CREATE VIEW Pteradata.TicketPromedioMensual(promedio_mensual,localidad, año, mes) AS
-	SELECT SUM(v.monto_total)/COUNT(v.id_hechos_ventas), l.nombre, t.id_año, m.nombre  FROM Pteradata.BI_HechosVentas v
+	SELECT SUM(v.monto_total_final)/SUM(v.cantidad_de_ventas), l.nombre, t.id_año, m.nombre  FROM Pteradata.BI_HechosVentas v
 	JOIN Pteradata.BI_DimLocalidad l ON l.id_localidad = v.id_localidad_sucursal
 	JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = v.id_tiempo
 	JOIN Pteradata.BI_DimMes m ON t.id_mes = m.id_mes
@@ -497,7 +498,7 @@ para el indicador se consideran todas las unidades.
 */
 
 CREATE VIEW Pteradata.CantidadUnidadesPromedio(cantidad_unidades_promedio, turno, cuatrimestre, año) AS
-	SELECT CAST(SUM(v.cantidad_articulos)/COUNT(v.id_hechos_ventas) AS DECIMAL(10,2)), dt.nombre, m.id_cuatrimestre, t.id_año FROM Pteradata.BI_HechosVentas v
+	SELECT CAST(SUM(v.cantidad_articulos)/SUM(v.cantidad_de_ventas) AS DECIMAL(10,2)), dt.nombre, m.id_cuatrimestre, t.id_año FROM Pteradata.BI_HechosVentas v
 	JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = v.id_tiempo
 	JOIN Pteradata.BI_DimMes m ON t.id_mes = m.id_mes
 	JOIN Pteradata.BI_DimTurno dt ON dt.id_turno = v.id_turno
@@ -511,7 +512,7 @@ correspondientes sobre el total de ventas anual.
 */
 
 CREATE VIEW Pteradata.PorcentajeDeVentasPorRangoEtario(porcentaje_ventas, rango_etario, tipo_de_caja, cuatrimestre, año) AS
-	SELECT CAST(COUNT(v.id_hechos_ventas)AS DECIMAL(7,2))/CAST((SELECT COUNT(v1.id_hechos_ventas) FROM Pteradata.BI_HechosVentas v1) AS DECIMAL(7,2)) * 100,
+	SELECT CAST(SUM(v.cantidad_de_ventas)AS DECIMAL(7,2))/CAST((SELECT SUM(v1.cantidad_de_ventas) FROM Pteradata.BI_HechosVentas v1) AS DECIMAL(7,2)) * 100,
 	re.nombre, tc.descripcion, m.id_cuatrimestre, t.id_año
 	FROM Pteradata.BI_HechosVentas v
 		JOIN Pteradata.BI_DimRangoEtario re ON re.id_rango_etario = v.id_rango_etario_empleado
@@ -527,7 +528,7 @@ cada año.
 */
 
 CREATE VIEW Pteradata.VentasPorTurno(cantidad_ventas, turno, mes, año) AS
-	SELECT COUNT(v.id_hechos_ventas), dt.nombre, m.nombre, t.id_año  FROM Pteradata.BI_HechosVentas v
+	SELECT SUM(v.cantidad_de_ventas), dt.nombre, m.nombre, t.id_año  FROM Pteradata.BI_HechosVentas v
 		JOIN Pteradata.BI_DimTurno dt ON dt.id_turno = v.id_turno
 		JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = v.id_tiempo
 		JOIN Pteradata.BI_DimMes m ON t.id_mes = m.id_mes
@@ -541,7 +542,7 @@ mes de cada año.
 */
 
 CREATE VIEW Pteradata.PorcentajeDeDescuentosAplicados (porcentaje_aplicado, mes, año) AS
-	SELECT SUM(v.porcentaje_descuento)/COUNT(v.id_hechos_ventas), m.nombre, t.id_año FROM Pteradata.BI_HechosVentas v
+	SELECT SUM(v.descuento_total)/SUM(v.monto_total_sin_descuento) * 100, m.nombre, t.id_año FROM Pteradata.BI_HechosVentas v
 		JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = v.id_tiempo
 		JOIN Pteradata.BI_DimMes m ON m.id_mes = t.id_mes
 	GROUP BY m.nombre, t.id_año
@@ -571,11 +572,12 @@ sucursal por año/mes (desvío)
 */
 
 CREATE VIEW Pteradata.CumplimientoDeEnvios (porcentaje_cumplimiento, sucursal, año, mes) AS
-	SELECT (COUNT(e.entregado_a_tiempo)/COUNT(e.id_hechos_envios))*100, s.nombre, t.id_año, m.nombre FROM Pteradata.BI_HechosEnvios e
+	SELECT (COUNT(e.entregado_a_tiempo)/COUNT(e.id_hechos_envios))*100, s.nombre, t.id_año, m.nombre 
+	FROM Pteradata.BI_HechosEnvios e
 		JOIN Pteradata.BI_DimSucursal s ON s.id_sucursal = e.id_sucursal
 		JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = e.id_tiempo
 		JOIN Pteradata.BI_DimMes m ON m.id_mes = t.id_mes
-	WHERE e.entregado_a_tiempo = 0
+	WHERE e.entregado_a_tiempo = 1
 	GROUP BY s.nombre, t.id_año, m.nombre
 
 GO
@@ -587,8 +589,7 @@ cada año.
 
 CREATE VIEW Pteradata.EnviosPorRangoEtario(cantidad_envios, rango_etario_cliente, cuatrimestre, año) AS
 	SELECT COUNT(e.id_hechos_envios), r.nombre, m.id_cuatrimestre, t.id_año FROM Pteradata.BI_HechosEnvios e
-		JOIN Pteradata.BI_DimCliente c ON e.id_cliente = c.id_cliente
-		JOIN Pteradata.BI_DimRangoEtario r ON r.id_rango_etario = c.id_rango_etario
+		JOIN Pteradata.BI_DimRangoEtario r ON r.id_rango_etario = e.id_rango_etario_cliente
 		JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = e.id_tiempo
 		JOIN Pteradata.BI_DimMes m ON t.id_mes = m.id_mes
 	GROUP BY r.nombre, m.id_cuatrimestre, t.id_año
@@ -604,8 +605,7 @@ CREATE VIEW Pteradata.Top5LocalidadesMayorCostoEnvio(localidad, costo_envio) AS
 		SELECT l.nombre 'localidad', MAX(e.costo) 'costo_envio',
 			ROW_NUMBER() OVER (ORDER BY MAX(e.costo) DESC) AS rownum
 		FROM Pteradata.BI_HechosEnvios e
-			JOIN Pteradata.BI_DimCliente c ON e.id_cliente = c.id_cliente
-			JOIN Pteradata.BI_DimLocalidad l ON c.id_localidad = l.id_localidad
+			JOIN Pteradata.BI_DimLocalidad l ON l.id_localidad = e.localidad_cliente
 		GROUP BY l.nombre
 	) tb
 	WHERE rownum <= 5
@@ -638,7 +638,7 @@ Promedio de importe de la cuota en función del rango etareo del cliente.
 */
 
 CREATE VIEW Pteradata.PromedioImporteCuotaPorRangoEtario (promedio_importe, rango_etario) AS
-	SELECT CAST(SUM(p.importe_por_cuota)/COUNT(p.id_hechos_pagos) AS DECIMAL(10,2)), r.nombre FROM Pteradata.BI_HechosPagos p
+	SELECT CAST(SUM(p.importe_por_cuota)/SUM(p.cantidad_pagos) AS DECIMAL(10,2)), r.nombre FROM Pteradata.BI_HechosPagos p
 		JOIN Pteradata.BI_DimRangoEtario r ON r.id_rango_etario = p.id_rango_etario_cliente
 	WHERE p.importe_por_cuota != p.importe_total
 	GROUP BY r.nombre
