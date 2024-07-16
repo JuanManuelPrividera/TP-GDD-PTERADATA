@@ -1,4 +1,3 @@
-
 ---------------------------------------------------------------------------------------------------------
 -------------------- CREACIÓN DE TABLAS -----------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
@@ -663,7 +662,6 @@ END
 Este procedimiento tiene como objetivo relacionar las diferentes Promociones con los productos sobre las que se aplican.
 */
 
-
 GO
 CREATE PROCEDURE Pteradata.migrarEnvioEstado AS
 BEGIN
@@ -693,7 +691,6 @@ BEGIN
 	JOIN Pteradata.Sucursal s ON s.sucursal_nombre = g.SUCURSAL_NOMBRE
 	JOIN Pteradata.Caja c ON c.caja_numero = g.CAJA_NUMERO AND c.sucursal_nombre = g.SUCURSAL_NOMBRE
 	JOIN Pteradata.Empleado e ON e.empleado_dni = g.EMPLEADO_DNI
-	ORDER BY TICKET_NUMERO
 END
 
 /*
@@ -844,7 +841,8 @@ BEGIN
 	JOIN Pteradata.Marca m ON m.Descripcion_marca = g.PRODUCTO_MARCA
 	JOIN Pteradata.ProductoPorMarca pm ON pm.id_producto = p.id_producto AND m.id_marca = pm.id_marca
 	JOIN Pteradata.PromocionPorProducto pn ON pn.Promocion_Codigo = g.PROMO_CODIGO AND pn.id_producto_marca = pm.id_producto_marca
-	JOIN Pteradata.TicketPorProducto tp ON tp.id_ticket = t.id_ticket AND tp.id_Producto_Marca = pm.id_producto_marca	
+	JOIN Pteradata.TicketPorProducto tp ON tp.id_ticket = t.id_ticket AND tp.id_Producto_Marca = pm.id_producto_marca
+    WHERE g.PROMO_APLICADA_DESCUENTO != 0
 END
 
 

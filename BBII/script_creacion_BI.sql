@@ -56,19 +56,6 @@ BEGIN
 END
 
 GO
-
-CREATE FUNCTION Pteradata.isCuota (@cant_cuotas INT) RETURNS INT AS
-BEGIN
-	DECLARE @return INT
-	IF(@cant_cuotas = 1)
-		SET @return = 0
-	ELSE 
-		SET @return = 1
-
-	RETURN @return
-END
-
-GO
 -----------------------------------
 -- CREACIÓN TABLA DE DIMENSIONES --
 -----------------------------------
@@ -193,16 +180,17 @@ BEGIN
 		id_rango_etario_cliente INT REFERENCES Pteradata.BI_DimRangoEtario,
 
 		importe_total DECIMAL(16, 2),
-		is_cuota INT CHECK (is_cuota IN (0, 1)),
+		cantidad_de_cuotas INT,
+        promedio_importe_cuota DECIMAL (16,2),
 		descuento_aplicado DECIMAL(16, 2),
 		cantidad_pagos INT
 	);
 END
+
 GO
 EXEC Pteradata.crear_todos_los_hechos
 GO
-
-
+zx
 --------------------------------
 -- MIGRACIÓN TABLAS DIMENSIÓN --
 --------------------------------
@@ -282,7 +270,7 @@ CREATE PROCEDURE Pteradata.migrar_BI_DimTiempo AS
 BEGIN
 	INSERT INTO Pteradata.BI_DimTiempo
 	SELECT da.id_año, dm.id_mes FROM Pteradata.BI_DimAño da
-		JOIN Pteradata.BI_DimMes dm ON 1=1  
+		JOIN Pteradata.BI_DimMes dm ON 1 = 1
 END
 
 GO
@@ -367,9 +355,6 @@ GO
 ----------------------------
 -- MIGRACIÓN TABLA HECHOS --
 ----------------------------
-
-SELECT * FROM Pteradata.Envio
-
 CREATE PROCEDURE Pteradata.migrar_BI_HechosEnvio AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosEnvios 
@@ -424,7 +409,7 @@ CREATE PROCEDURE Pteradata.migrar_BI_HechosPagos AS
 BEGIN
 	INSERT INTO Pteradata.BI_HechosPagos
 	SELECT DISTINCT dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago, Pteradata.getRangoEtario(c.cliente_fecha_nacimiento),
-	SUM(p.pago_importe), Pteradata.isCuota(dp.cant_cuotas), SUM(t.ticket_det_Descuento_medio_pago), COUNT(DISTINCT p.ID_Pago)
+	SUM(p.pago_importe), SUM(dp.cant_cuotas), AVG(p.pago_importe/dp.cant_cuotas) ,SUM(t.ticket_det_Descuento_medio_pago), COUNT(DISTINCT p.ID_Pago)
 	FROM Pteradata.Pago p
 		JOIN Pteradata.BI_DimTiempo dt ON dt.id_año = YEAR(p.pago_fecha) AND dt.id_mes = MONTH(p.pago_fecha) 
 		JOIN Pteradata.Ticket t ON t.id_ticket = p.id_ticket
@@ -434,7 +419,7 @@ BEGIN
 		JOIN Pteradata.DetallePago dp ON dp.ID_pago = p.ID_pago
 		JOIN Pteradata.Cliente c ON c.id_cliente = dp.id_cliente
 	GROUP BY dt.id_tiempo, ds.id_sucursal, dmp.id_medio_pago,
-				Pteradata.getRangoEtario(c.cliente_fecha_nacimiento), Pteradata.isCuota(dp.cant_cuotas)
+				Pteradata.getRangoEtario(c.cliente_fecha_nacimiento)
 END
 
 GO
@@ -620,14 +605,14 @@ cuotas.
 
 CREATE VIEW Pteradata.Top3SucursalesMayorPagoEnCuotas(importe_total, sucursal, medio_de_pago, mes, año) AS
 	SELECT importe_total, sucursal, medio_de_pago, mes, año FROM (
-		SELECT SUM(p.importe_total) 'importe_total',s.nombre 'sucursal', mp.descripcion 'medio_de_pago', m.nombre 'mes', t.id_año 'año', 
-		ROW_NUMBER() OVER (PARTITION BY mp.descripcion, m.nombre, t.id_año ORDER BY SUM(p.importe_total) DESC) AS rownum
+		SELECT MAX(p.importe_total) 'importe_total',s.nombre 'sucursal', mp.descripcion 'medio_de_pago', m.nombre 'mes', t.id_año 'año',
+		ROW_NUMBER() OVER (PARTITION BY mp.descripcion, m.nombre, t.id_año ORDER BY MAX(p.importe_total) DESC) AS rownum
 		FROM Pteradata.BI_HechosPagos p
 			JOIN Pteradata.BI_DimMedioPago mp ON mp.id_medio_pago = p.id_medio_pago
 			JOIN Pteradata.BI_DimTiempo t ON t.id_tiempo = p.id_tiempo
 			JOIN Pteradata.BI_DimMes m ON m.id_mes = t.id_mes
 			JOIN Pteradata.BI_DimSucursal s ON s.id_sucursal = p.id_sucursal
-		WHERE p.importe_por_cuota != p.importe_total
+		WHERE cantidad_de_cuotas != 1
 		GROUP BY mp.descripcion, m.nombre, t.id_año,s.nombre) tb
 	WHERE rownum <= 3
 
@@ -636,11 +621,10 @@ GO
 /*
 Promedio de importe de la cuota en función del rango etareo del cliente.
 */
-
 CREATE VIEW Pteradata.PromedioImporteCuotaPorRangoEtario (promedio_importe, rango_etario) AS
-	SELECT CAST(SUM(p.importe_por_cuota)/SUM(p.cantidad_pagos) AS DECIMAL(10,2)), r.nombre FROM Pteradata.BI_HechosPagos p
+	SELECT AVG(promedio_importe_cuota), r.nombre FROM Pteradata.BI_HechosPagos p
 		JOIN Pteradata.BI_DimRangoEtario r ON r.id_rango_etario = p.id_rango_etario_cliente
-	WHERE p.importe_por_cuota != p.importe_total
+	WHERE p.cantidad_de_cuotas != 1
 	GROUP BY r.nombre
 
 GO
